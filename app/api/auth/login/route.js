@@ -1,0 +1,95 @@
+import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import { connectToDatabase } from "../../../../lib/db";
+import { createSession } from "../../../../lib/auth";
+import { isValidEmail, normalizeEmail } from "../../../../lib/validation";
+import { clearHits, clientIp, hit } from "../../../../lib/rate-limit";
+import { describeServerError } from "../../../../lib/errors";
+import User from "../../../../database/models/User";
+import Membership from "../../../../database/models/Membership";
+
+export const runtime = "nodejs";
+
+// compared against when the e-mail does not exist, so response time does not reveal valid accounts
+let dummyHash = null;
+const getDummyHash = () => (dummyHash ||= bcrypt.hash("workora-dummy-password", 12));
+
+function tooMany(retryAfterSec) {
+  const minutes = Math.max(1, Math.ceil(retryAfterSec / 60));
+  return NextResponse.json(
+    { error: `تعداد تلاش‌های ناموفق زیاد است. ${minutes.toLocaleString("fa-IR")} دقیقه دیگر دوباره تلاش کنید.` },
+    { status: 429, headers: { "Retry-After": String(retryAfterSec) } }
+  );
+}
+
+export async function POST(request) {
+  try {
+    const body = await request.json();
+    const email = normalizeEmail(body.email);
+    const password = String(body.password || "");
+
+    if (!isValidEmail(email) || !password) {
+      return NextResponse.json(
+        { error: "ایمیل یا رمز عبور اشتباه است." },
+        { status: 401 }
+      );
+    }
+
+    await connectToDatabase();
+
+    const ip = clientIp(request);
+    const accountKey = `login:acct:${ip}:${email}`;
+    const [byIp, byAccount] = await Promise.all([
+      hit(`login:ip:${ip}`, { max: 60, windowSec: 900 }),
+      hit(accountKey, { max: 8, windowSec: 900 }),
+    ]);
+    if (byIp.limited || byAccount.limited) return tooMany(Math.max(byIp.retryAfterSec, byAccount.retryAfterSec));
+
+    const user = await User.findOne({ email }).select("+passwordHash");
+    if (!user || !user.isActive) {
+      await bcrypt.compare(password, await getDummyHash());
+      return NextResponse.json(
+        { error: "ایمیل یا رمز عبور اشتباه است." },
+        { status: 401 }
+      );
+    }
+
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      return NextResponse.json(
+        { error: "ایمیل یا رمز عبور اشتباه است." },
+        { status: 401 }
+      );
+    }
+
+    const membership = await Membership.findOne({
+      userId: user._id,
+      isActive: true,
+    }).sort({ createdAt: 1 });
+
+    if (!membership) {
+      return NextResponse.json(
+        { error: "حساب شما هنوز به Workspaceای متصل نیست." },
+        { status: 403 }
+      );
+    }
+
+    await clearHits(accountKey);
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { lastLoginAt: new Date() } }
+    );
+
+    await createSession({
+      userId: String(user._id),
+      workspaceId: String(membership.workspaceId),
+      membershipId: String(membership._id),
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("LOGIN_ERROR", error);
+    const described = describeServerError(error);
+    return NextResponse.json({ error: described.message }, { status: described.status });
+  }
+}
