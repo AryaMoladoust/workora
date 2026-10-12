@@ -1,3 +1,5 @@
+
+
 # Workora
 
 > بازطراحی مرحله‌ای: وضعیت و نقشه راه در `STAGES.md`.
@@ -16,7 +18,7 @@ npm install
 
 ### 2. Start MongoDB
 
-Make sure the MongoDB server is running locally on:
+Make sure the MongoDB server is running locally on:   
 
 ```text
 mongodb://127.0.0.1:27017
