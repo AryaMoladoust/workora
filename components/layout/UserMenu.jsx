@@ -3,10 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "../ui/Icon";
+import PwaControls from "../pwa/PwaControls";
+import { usePwa } from "../pwa/PwaProvider";
 import { initials, hueFromString } from "../../lib/format";
 
 export default function UserMenu({ user, role }) {
   const router = useRouter();
+  const pwa = usePwa();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const rootRef = useRef(null);
@@ -30,6 +33,7 @@ export default function UserMenu({ user, role }) {
   async function logout() {
     setBusy(true);
     try {
+      await pwa.detachPush();
       await fetch("/api/auth/logout", { method: "POST" });
     } finally {
       router.replace("/login");
@@ -65,6 +69,9 @@ export default function UserMenu({ user, role }) {
               <strong>{fullName}</strong>
               <small dir="ltr">{user.email}</small>
             </div>
+          </div>
+          <div className="pwa-menu" role="group" aria-label="برنامه و اعلان‌ها">
+            <PwaControls rowClass="menu-item" />
           </div>
           <button type="button" role="menuitem" className="menu-item menu-item-danger" onClick={logout} disabled={busy}>
             <Icon name="logout" size={18} />

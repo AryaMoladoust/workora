@@ -47,7 +47,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
 ```
 https://<نام-پروژه>.vercel.app/api/setup?token=<SETUP_TOKEN>
 ```
-خروجی باید `"ok": true` و فهرست ۱۲ collection باشد: `users, workspaces, memberships, projects, tasks, comments, activities, notifications, conversations, chatmessages, conversationreads, ratelimits`. اگر خطا دیدید متن آن را برایم بفرستید.
+خروجی باید `"ok": true` و فهرست collectionها باشد: `users, workspaces, memberships, projects, tasks, comments, activities, notifications, conversations, chatmessages, conversationreads, ratelimits, pushsubscriptions, pushconfigs`. اگر خطا دیدید متن آن را برایم بفرستید.
 (بعد از اتمام می‌توانید `SETUP_TOKEN` را از Vercel حذف کنید؛ آن‌وقت این آدرس غیرفعال می‌شود.)
 
 ## ۶) ساخت حساب مالک
@@ -69,3 +69,9 @@ Vercel → Project → Settings → Domains → دامنه را اضافه و ر
 | چت دیر به‌روز می‌شود | طبیعی در حالت polling (۴ ثانیه)؛ برای لحظه‌ای واقعی به سرور اختصاصی بروید |
 | کند بودن کل برنامه | Region توابع Vercel با Region کلاستر Atlas فاصله دارد |
 | ۴۰۴ در `/api/setup` | `SETUP_TOKEN` در Vercel تنظیم نشده یا Redeploy نکرده‌اید |
+
+## ۸) نصب به‌عنوان اپ (PWA) و اعلان‌ها
+جزئیات کامل در فایل `PWA.md` است. خلاصه:
+- هیچ متغیر محیطی اجباری جدیدی لازم نیست؛ اعلان‌ها بعد از Deploy کار می‌کنند.
+- برای تولید (Production) پیشنهاد می‌شود کلید VAPID را ثابت کنید: `npm run vapid` را اجرا کنید و سه مقدار `VAPID_PUBLIC_KEY`، `VAPID_PRIVATE_KEY` و `VAPID_SUBJECT` را در Vercel بگذارید و Redeploy کنید.
+- بعد از Deploy یک بار `/api/setup?token=...` را باز کنید تا collectionهای `pushsubscriptions` و `pushconfigs` ساخته شوند.

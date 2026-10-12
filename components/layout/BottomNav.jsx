@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Icon from "../ui/Icon";
+import PwaControls from "../pwa/PwaControls";
+import { usePwa } from "../pwa/PwaProvider";
 import { BOTTOM_NAV_ITEMS, ACCOUNT_PATHS, isActivePath } from "./nav";
 import { initials, hueFromString } from "../../lib/format";
 
@@ -13,6 +15,7 @@ function faCount(n) {
 
 export default function BottomNav({ pathname, user, role, unread = 0, chatUnread = 0, onOpenMenu }) {
   const router = useRouter();
+  const pwa = usePwa();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const sheetRef = useRef(null);
@@ -40,6 +43,7 @@ export default function BottomNav({ pathname, user, role, unread = 0, chatUnread
   async function logout() {
     setBusy(true);
     try {
+      await pwa.detachPush();
       await fetch("/api/auth/logout", { method: "POST" });
     } finally {
       router.replace("/login");
@@ -91,6 +95,7 @@ export default function BottomNav({ pathname, user, role, unread = 0, chatUnread
             <Icon name="menu" size={19} />
             <span>همه بخش‌ها</span>
           </button>
+          <PwaControls rowClass="bnav-row" />
           <button type="button" className="bnav-row bnav-row-danger" onClick={logout} disabled={busy}>
             <Icon name="logout" size={19} />
             <span>{busy ? "در حال خروج..." : "خروج از حساب"}</span>

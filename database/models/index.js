@@ -10,3 +10,5 @@ export { default as Conversation } from "./Conversation";
 export { default as ChatMessage } from "./ChatMessage";
 export { default as ConversationRead } from "./ConversationRead";
 export { default as RateLimit } from "./RateLimit";
+export { default as PushSubscription } from "./PushSubscription";
+export { default as PushConfig } from "./PushConfig";

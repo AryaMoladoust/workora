@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "../../../../../../lib/db";
 import { getCurrentUser } from "../../../../../../lib/auth";
-import { conversationAccess, MESSAGE_LIMIT, publishToParticipants, serializeMessage, serializeMessages } from "../../../../../../lib/chat";
+import { conversationAccess, MESSAGE_LIMIT, publishToParticipants, pushChatMessage, serializeMessage, serializeMessages } from "../../../../../../lib/chat";
 import ChatMessage from "../../../../../../database/models/ChatMessage";
 import Conversation from "../../../../../../database/models/Conversation";
 import ConversationRead from "../../../../../../database/models/ConversationRead";
@@ -87,6 +87,8 @@ export async function POST(request, { params }) {
       projectId: access.conversation.projectId ? String(access.conversation.projectId) : null,
       message: serialized,
     });
+
+    await pushChatMessage(current, access, text);
 
     return NextResponse.json({ message: serialized }, { status: 201 });
   } catch (error) {

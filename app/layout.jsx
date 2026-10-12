@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { Vazirmatn, Inter } from "next/font/google";
 import "./globals.css";
 import AppShell from "../components/layout/AppShell";
+import PwaProvider from "../components/pwa/PwaProvider";
 import { getCachedCurrentUser } from "../lib/require-auth";
 import { unreadCountFor } from "../lib/notifications";
 import { chatUnreadTotal } from "../lib/chat";
@@ -16,13 +17,32 @@ import {
 const vazirmatn = Vazirmatn({ subsets: ["arabic", "latin"], display: "swap", variable: "--font-vazirmatn" });
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
 
-export const metadata = { title: "Workora", description: "فضای کاری تیم و مدیریت پروژه" };
-
-export const viewport = {
-  width: "device-width",
-  initialScale: 1,
-  colorScheme: "light dark",
+export const metadata = {
+  title: "Workora",
+  description: "فضای کاری تیم و مدیریت پروژه",
+  applicationName: "Workora",
+  appleWebApp: { capable: true, title: "Workora", statusBarStyle: "default" },
+  formatDetection: { telephone: false },
 };
+
+// theme-color tints the browser / installed-app title bar (follows the chosen light / dark mode).
+export async function generateViewport() {
+  const store = await cookies();
+  const mode = normalizeMode(store.get(MODE_COOKIE)?.value);
+  const light = "#f6f7fa";
+  const dark = "#0b0d13";
+  const themeColor =
+    mode === "light"
+      ? light
+      : mode === "dark"
+        ? dark
+        : [
+            { media: "(prefers-color-scheme: light)", color: light },
+            { media: "(prefers-color-scheme: dark)", color: dark },
+          ];
+  return { width: "device-width", initialScale: 1, viewportFit: "cover", colorScheme: "light dark", themeColor };
+}
+
 
 export default async function RootLayout({ children }) {
   const store = await cookies();
@@ -42,6 +62,7 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="fa" dir="rtl" data-theme={theme} data-mode={mode} className={`${vazirmatn.variable} ${inter.variable}`} suppressHydrationWarning>
       <body>
+        <PwaProvider signedIn={Boolean(current?.user)}>
         <AppShell
           user={current?.user ?? null}
           workspace={current?.workspace ?? null}
@@ -53,6 +74,7 @@ export default async function RootLayout({ children }) {
         >
           {children}
         </AppShell>
+        </PwaProvider>
       </body>
     </html>
   );

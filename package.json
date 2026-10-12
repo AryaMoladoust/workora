@@ -1,12 +1,13 @@
 {
   "name": "workora",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "private": true,
   "scripts": {
     "dev": "node server.js",
     "dev:next": "next dev",
     "build": "next build",
-    "start": "node server.js --prod"
+    "start": "node server.js --prod",
+    "vapid": "node scripts/generate-vapid.js"
   },
   "dependencies": {
     "next": "16.3.3",
