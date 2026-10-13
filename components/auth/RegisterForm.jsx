@@ -39,7 +39,10 @@ export default function RegisterForm({ mode, needsKey = false, initialCode = "" 
   return (
     <main className="auth-page">
       <form className="auth-card" onSubmit={submit}>
-        <span className="auth-brand">Workora</span>
+        <span className="auth-brand">
+          <img src="/logo.png" alt="" width="36" height="36" />
+          Workora
+        </span>
         <h1>{isJoin ? "ثبت‌نام در تیم" : "ساخت فضای کاری"}</h1>
         <p>
           {isJoin

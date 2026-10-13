@@ -1,6 +1,6 @@
 /* Workora service worker: installable PWA shell, offline fallback and push notifications.
    Pages and API responses are never cached (data is always live and per-user). */
-const CACHE = "workora-static-v1";
+const CACHE = "workora-static-v2";
 const PRECACHE = ["/offline.html", "/icons/icon-192.png", "/icons/badge-96.png"];
 
 self.addEventListener("install", (event) => {

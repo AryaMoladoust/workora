@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { Vazirmatn, IBM_Plex_Sans_Arabic, Noto_Sans_Arabic, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import AppShell from "../components/layout/AppShell";
 import PwaProvider from "../components/pwa/PwaProvider";
@@ -13,12 +13,15 @@ import {
   normalizeFont,
 } from "../lib/theme";
 
-// Fonts are downloaded at build time and self-hosted by Next.js (no request to Google at runtime).
-// Only the selected UI font is actually used by the page; the others are fetched on demand.
-const vazirmatn = Vazirmatn({ subsets: ["arabic", "latin"], display: "swap", variable: "--font-vazirmatn" });
-const plex = IBM_Plex_Sans_Arabic({ subsets: ["arabic", "latin"], weight: ["400", "500", "600", "700"], display: "swap", variable: "--font-plex", preload: false });
-const noto = Noto_Sans_Arabic({ subsets: ["arabic"], display: "swap", variable: "--font-noto", preload: false });
-const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
+// The only font is the local IRANYekanX file: no request to Google Fonts, works fully offline.
+// Main UI font: IRANYekanX (variable, weights 100–1000), self-hosted from app/fonts.
+const iranyekan = localFont({
+  src: "./fonts/IRANYekanXVF.ttf",
+  weight: "100 1000",
+  style: "normal",
+  display: "swap",
+  variable: "--font-iranyekan",
+});
 
 export const metadata = {
   title: "Workora",
@@ -68,7 +71,7 @@ export default async function RootLayout({ children }) {
       data-theme={theme}
       data-mode={mode}
       data-font={font}
-      className={`${vazirmatn.variable} ${plex.variable} ${noto.variable} ${inter.variable}`}
+      className={`${iranyekan.variable}`}
       suppressHydrationWarning
     >
       <body>

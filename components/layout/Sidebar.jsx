@@ -9,7 +9,7 @@ export default function Sidebar({ pathname, open, onClose, workspace, role, unre
     <aside className={`sidebar ${open ? "is-open" : ""}`} aria-label="منوی اصلی">
       <div className="sidebar-top">
         <Link href="/dashboard" className="brand" onClick={onClose}>
-          <span className="brand-mark">W</span>
+          <img src="/logo.png" alt="" width="42" height="42" className="brand-mark" />
           <span className="brand-text">
             <strong>Workora</strong>
             <small>{workspace.name}</small>

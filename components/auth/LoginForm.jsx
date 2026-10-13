@@ -34,7 +34,10 @@ export default function LoginForm() {
   return (
     <main className="auth-page">
       <form className="auth-card" onSubmit={submit}>
-        <span className="auth-brand">Workora</span>
+        <span className="auth-brand">
+          <img src="/logo.png" alt="" width="36" height="36" />
+          Workora
+        </span>
         <h1>ورود</h1>
         <p>وارد حساب Workora شوید.</p>
         {error && <div className="auth-error" role="alert">{error}</div>}

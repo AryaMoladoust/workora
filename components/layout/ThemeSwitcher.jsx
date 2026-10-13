@@ -10,7 +10,7 @@ function writeCookie(name, value) {
   document.cookie = `${name}=${value}; path=/; max-age=31536000; samesite=lax`;
 }
 
-export default function ThemeSwitcher({ initialTheme, initialMode, initialFont = "vazirmatn" }) {
+export default function ThemeSwitcher({ initialTheme, initialMode, initialFont = "iranyekan" }) {
   const [theme, setTheme] = useState(initialTheme);
   const [mode, setMode] = useState(initialMode);
   const [font, setFont] = useState(initialFont);
@@ -80,26 +80,6 @@ export default function ThemeSwitcher({ initialTheme, initialMode, initialFont =
                 >
                   <Icon name={MODE_ICONS[m.id]} size={16} />
                   {m.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="popover-section">
-            <span className="popover-label">فونت</span>
-            <div className="font-grid" role="radiogroup" aria-label="فونت برنامه">
-              {FONTS.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={font === f.id}
-                  className={`font-option font-sample-${f.id} ${font === f.id ? "is-selected" : ""}`}
-                  onClick={() => pickFont(f.id)}
-                >
-                  <strong>{f.label}</strong>
-                  <small>{f.note}</small>
-                  <span className="font-preview">نمونه ۱۲۳ Aa</span>
                 </button>
               ))}
             </div>
