@@ -14,6 +14,7 @@ function bad(message, status = 400) {
 
 // ?before=<ISO date>&limit=40  → older messages (oldest first in the response)
 // ?after=<ISO date>            → messages newer than a moment (used to catch up after a reconnect)
+// ?since=<ISO date>            → also returns ids of messages deleted after that moment (polling keeps deletions in sync)
 export async function GET(request, { params }) {
   params = await params;
   const current = await getCurrentUser();
@@ -26,6 +27,7 @@ export async function GET(request, { params }) {
   const limit = Math.min(60, Math.max(1, Number.parseInt(searchParams.get("limit") || "40", 10) || 40));
   const before = searchParams.get("before");
   const after = searchParams.get("after");
+  const since = searchParams.get("since");
 
   const filter = { conversationId: access.conversation._id };
   if (before && !Number.isNaN(Date.parse(before))) filter.createdAt = { $lt: new Date(before) };
@@ -41,7 +43,16 @@ export async function GET(request, { params }) {
   const hasMore = !after && rows.length > limit;
   if (!after) rows = rows.slice(0, limit).reverse();
 
-  return NextResponse.json({ messages: await serializeMessages(rows), hasMore });
+  let deleted = [];
+  if (since && !Number.isNaN(Date.parse(since))) {
+    const gone = await ChatMessage.find({ conversationId: access.conversation._id, deletedAt: { $gt: new Date(since) } })
+      .select("_id")
+      .limit(200)
+      .lean();
+    deleted = gone.map((m) => String(m._id));
+  }
+
+  return NextResponse.json({ messages: await serializeMessages(rows), hasMore, deleted, now: new Date().toISOString() });
 }
 
 export async function POST(request, { params }) {

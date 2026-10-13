@@ -48,6 +48,17 @@ export default function DashboardView({ firstName, data, canManageProjects }) {
         </div>
       </section>
 
+      {data.announcement && (
+        <Link href="/announcements" className="announce-banner">
+          <span className="announce-icon"><Icon name="megaphone" size={20} /></span>
+          <span className="announce-banner-text">
+            <strong>{data.announcement.title}</strong>
+            <small>{data.announcement.body}</small>
+          </span>
+          <span className="announce-banner-meta">{data.announcement.pinned ? "سنجاق‌شده" : data.announcement.relative}</span>
+        </Link>
+      )}
+
       <section className="stat-grid" aria-label="خلاصه وضعیت">
         <StatCard icon="tasks" label="وظایف باز من" value={data.me.open} hint={`${fa(data.me.inProgress)} مورد در حال انجام`} />
         <StatCard icon="users" label="واگذارشده به دیگران" value={data.me.delegatedOpen} hint="وظایف بازی که شما ساخته‌اید" tone="info" />

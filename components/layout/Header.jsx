@@ -6,7 +6,7 @@ import ThemeSwitcher from "./ThemeSwitcher";
 import UserMenu from "./UserMenu";
 import { titleForPath } from "./nav";
 
-export default function Header({ pathname, user, role, workspace, theme, mode, unread, setUnread, onMenu }) {
+export default function Header({ pathname, user, role, workspace, theme, mode, font, unread, setUnread, onMenu }) {
   return (
     <header className="header">
       <div className="header-start">
@@ -20,7 +20,7 @@ export default function Header({ pathname, user, role, workspace, theme, mode, u
       </div>
 
       <div className="header-end">
-        <ThemeSwitcher initialTheme={theme} initialMode={mode} />
+        <ThemeSwitcher initialTheme={theme} initialMode={mode} initialFont={font} />
         <NotificationBell unread={unread} setUnread={setUnread} />
         <UserMenu user={user} role={role} />
       </div>

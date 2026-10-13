@@ -55,7 +55,7 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
   useEffect(
     () =>
       subscribe((event) => {
-        if (event.type === "reconnected") {
+        if (event.type === "reconnected" || event.type === "chat.deleted") {
           refreshList();
           return;
         }

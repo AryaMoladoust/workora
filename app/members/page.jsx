@@ -6,6 +6,9 @@ import { listWorkspaceMembers } from "../../lib/members";
 import { dateTime, fa } from "../../lib/format";
 import Project from "../../database/models/Project";
 import MembersManager from "../../components/members/MembersManager";
+import InviteCard from "../../components/members/InviteCard";
+import { displayInviteCode } from "../../lib/invite";
+import Workspace from "../../database/models/Workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +38,15 @@ export default async function MembersPage() {
   const grantable = isOwner(current) ? PERMISSION_IDS : PERMISSION_IDS.filter((id) => hasPermission(current, id));
   const activeCount = prepared.filter((m) => m.isActive).length;
 
+  let invite = null;
+  if (canManage) {
+    const workspace = await Workspace.findById(current.workspace.id).select("inviteCode inviteEnabled").lean();
+    invite = {
+      enabled: Boolean(workspace?.inviteEnabled && workspace?.inviteCode),
+      code: workspace?.inviteCode ? displayInviteCode(workspace.inviteCode) : "",
+    };
+  }
+
   return (
     <div className="page-shell">
       <div className="page-heading">
@@ -44,6 +56,7 @@ export default async function MembersPage() {
           <p>{fa(activeCount)} عضو فعال در «{current.workspace.name}»</p>
         </div>
       </div>
+      {invite && <InviteCard initial={invite} />}
       <MembersManager members={prepared} canManage={canManage} currentUserId={current.user.id} grantable={grantable} />
     </div>
   );

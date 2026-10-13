@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Icon from "../ui/Icon";
-import { THEMES, MODES, THEME_COOKIE, MODE_COOKIE } from "../../lib/theme";
+import { THEMES, MODES, FONTS, THEME_COOKIE, MODE_COOKIE, FONT_COOKIE } from "../../lib/theme";
 
 const MODE_ICONS = { light: "sun", dark: "moon", system: "monitor" };
 
@@ -10,9 +10,10 @@ function writeCookie(name, value) {
   document.cookie = `${name}=${value}; path=/; max-age=31536000; samesite=lax`;
 }
 
-export default function ThemeSwitcher({ initialTheme, initialMode }) {
+export default function ThemeSwitcher({ initialTheme, initialMode, initialFont = "vazirmatn" }) {
   const [theme, setTheme] = useState(initialTheme);
   const [mode, setMode] = useState(initialMode);
+  const [font, setFont] = useState(initialFont);
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
 
@@ -36,6 +37,12 @@ export default function ThemeSwitcher({ initialTheme, initialMode }) {
     setTheme(id);
     document.documentElement.dataset.theme = id;
     writeCookie(THEME_COOKIE, id);
+  }
+
+  function pickFont(id) {
+    setFont(id);
+    document.documentElement.dataset.font = id;
+    writeCookie(FONT_COOKIE, id);
   }
 
   function pickMode(id) {
@@ -73,6 +80,26 @@ export default function ThemeSwitcher({ initialTheme, initialMode }) {
                 >
                   <Icon name={MODE_ICONS[m.id]} size={16} />
                   {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="popover-section">
+            <span className="popover-label">فونت</span>
+            <div className="font-grid" role="radiogroup" aria-label="فونت برنامه">
+              {FONTS.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={font === f.id}
+                  className={`font-option font-sample-${f.id} ${font === f.id ? "is-selected" : ""}`}
+                  onClick={() => pickFont(f.id)}
+                >
+                  <strong>{f.label}</strong>
+                  <small>{f.note}</small>
+                  <span className="font-preview">نمونه ۱۲۳ Aa</span>
                 </button>
               ))}
             </div>

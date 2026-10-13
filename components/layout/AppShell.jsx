@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
-import BottomNav from "./BottomNav";
 import ThemeSwitcher from "./ThemeSwitcher";
+import BottomNav from "./BottomNav";
 import RealtimeProvider, { useRealtime } from "../realtime/RealtimeProvider";
 
 const AUTH_PATHS = ["/login", "/register", "/owner-login"];
@@ -14,7 +14,7 @@ function isAuthPath(pathname) {
   return AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
-function ShellFrame({ pathname, user, workspace, role, theme, mode, children }) {
+function ShellFrame({ pathname, user, workspace, role, theme, mode, font, children }) {
   const { unread, setUnread, chatUnread } = useRealtime();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -51,6 +51,7 @@ function ShellFrame({ pathname, user, workspace, role, theme, mode, children }) 
           workspace={workspace}
           theme={theme}
           mode={mode}
+          font={font}
           unread={unread}
           setUnread={setUnread}
           onMenu={() => setMenuOpen(true)}
@@ -69,7 +70,7 @@ function ShellFrame({ pathname, user, workspace, role, theme, mode, children }) 
   );
 }
 
-export default function AppShell({ user, workspace, role, theme, mode, unread = 0, chatUnread = 0, children }) {
+export default function AppShell({ user, workspace, role, theme, mode, font, unread = 0, chatUnread = 0, children }) {
   const pathname = usePathname();
 
   // Login / register pages: no shell, only a floating theme switcher.
@@ -77,7 +78,7 @@ export default function AppShell({ user, workspace, role, theme, mode, unread = 
     return (
       <>
         <div className="auth-tools">
-          <ThemeSwitcher initialTheme={theme} initialMode={mode} />
+          <ThemeSwitcher initialTheme={theme} initialMode={mode} initialFont={font} />
         </div>
         {children}
       </>
@@ -89,7 +90,7 @@ export default function AppShell({ user, workspace, role, theme, mode, unread = 
 
   return (
     <RealtimeProvider userId={user.id} initialUnread={unread} initialChatUnread={chatUnread}>
-      <ShellFrame pathname={pathname} user={user} workspace={workspace} role={role} theme={theme} mode={mode}>
+      <ShellFrame pathname={pathname} user={user} workspace={workspace} role={role} theme={theme} mode={mode} font={font}>
         {children}
       </ShellFrame>
     </RealtimeProvider>

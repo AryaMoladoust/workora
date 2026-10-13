@@ -6,6 +6,8 @@ import { isValidEmail, normalizeEmail, validateName, validatePassword } from "..
 import { clientIp, hit } from "../../../../lib/rate-limit";
 import { registrationKeyValid, registrationOpen } from "../../../../lib/registration";
 import { describeServerError } from "../../../../lib/errors";
+import { normalizeInviteCode } from "../../../../lib/invite";
+import { logActivity } from "../../../../lib/activity";
 import User from "../../../../database/models/User";
 import Workspace from "../../../../database/models/Workspace";
 import Membership from "../../../../database/models/Membership";
@@ -32,14 +34,86 @@ async function makeUniqueSlug(workspaceName, userId) {
   return slug;
 }
 
+// Team member signs up with the workspace invite code (created by the owner on the Members page).
+async function joinWithInviteCode(request, body) {
+  let createdUserId = null;
+  try {
+    const limit = await hit(`join:ip:${clientIp(request)}`, { max: 10, windowSec: 3600 });
+    if (limit.limited) {
+      return NextResponse.json({ error: "تعداد تلاش‌ها زیاد است. بعداً دوباره تلاش کنید." }, { status: 429 });
+    }
+
+    const firstName = String(body.firstName || "").trim();
+    const lastName = String(body.lastName || "").trim();
+    const email = normalizeEmail(body.email);
+    const password = String(body.password || "");
+
+    const problem = validateName(firstName, "نام") || validateName(lastName, "نام خانوادگی") || validatePassword(password);
+    if (problem) return NextResponse.json({ error: problem }, { status: 400 });
+    if (!isValidEmail(email) || email.length > 160) {
+      return NextResponse.json({ error: "ایمیل معتبر نیست." }, { status: 400 });
+    }
+
+    await connectToDatabase();
+    const code = normalizeInviteCode(body.inviteCode);
+    const workspace = code ? await Workspace.findOne({ inviteCode: code, inviteEnabled: true, isActive: true }).lean() : null;
+    if (!workspace) {
+      return NextResponse.json({ error: "کد دعوت نامعتبر یا غیرفعال است. از مالک فضای کاری کد درست را بگیرید." }, { status: 403 });
+    }
+
+    if (await User.exists({ email })) {
+      return NextResponse.json({ error: "ثبت‌نام با این ایمیل امکان‌پذیر نیست. اگر قبلاً حساب دارید وارد شوید." }, { status: 409 });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    const user = await User.create({ firstName, lastName, email, passwordHash });
+    createdUserId = user._id;
+
+    const membership = await Membership.create({
+      workspaceId: workspace._id,
+      userId: user._id,
+      role: "member",
+      permissions: [],
+    });
+
+    await createSession({
+      userId: String(user._id),
+      workspaceId: String(workspace._id),
+      membershipId: String(membership._id),
+    });
+
+    await logActivity(
+      { workspace: { id: String(workspace._id) }, user: { id: String(user._id), firstName, lastName } },
+      { type: "member.joined", entityType: "member", entityId: user._id, entityTitle: `${firstName} ${lastName}` }
+    );
+
+    return NextResponse.json({ ok: true }, { status: 201 });
+  } catch (error) {
+    if (createdUserId) {
+      await Membership.deleteMany({ userId: createdUserId }).catch(() => {});
+      await User.deleteOne({ _id: createdUserId }).catch(() => {});
+    }
+    if (error?.code === 11000) {
+      return NextResponse.json({ error: "اطلاعات واردشده قبلاً استفاده شده است." }, { status: 409 });
+    }
+    console.error("JOIN_ERROR", error);
+    const described = describeServerError(error);
+    return NextResponse.json({ error: described.message }, { status: described.status });
+  }
+}
+
 export async function POST(request) {
   let createdUserId = null;
   let createdWorkspaceId = null;
 
   try {
+    // a request carrying an invite code is a team member joining an existing workspace
+    const peek = await request.clone().json().catch(() => ({}));
+    if (peek && peek.inviteCode) return joinWithInviteCode(request, peek);
+
     if (!(await registrationOpen())) {
       return NextResponse.json(
-        { error: "ثبت‌نام عمومی بسته است. مالک فضای کاری باید برای شما حساب بسازد." },
+        { error: "ساخت Workspace جدید بسته است. برای پیوستن به تیم از «کد دعوت» استفاده کنید یا از مالک بخواهید حساب بسازد." },
         { status: 403 }
       );
     }

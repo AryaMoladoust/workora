@@ -53,6 +53,11 @@ export default function RealtimeProvider({ userId, initialUnread = 0, initialCha
     }
   }, []);
 
+  // counters are not sent with the page (keeps the first response fast): fetch them right after mount
+  useEffect(() => {
+    if (userId) refreshSummary();
+  }, [userId, refreshSummary]);
+
   // ---- socket with automatic reconnect
   useEffect(() => {
     if (!userId || POLLING_ONLY) return undefined;

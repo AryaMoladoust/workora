@@ -33,6 +33,9 @@ const workspaceSchema = new mongoose.Schema(
       default: true,
       index: true,
     },
+    // Self-registration of team members: people who know the code can create a member account.
+    inviteCode: { type: String, default: undefined },
+    inviteEnabled: { type: Boolean, default: false },
   },
   {
     timestamps: true,
@@ -41,6 +44,7 @@ const workspaceSchema = new mongoose.Schema(
 );
 
 workspaceSchema.index({ slug: 1 }, { unique: true });
+workspaceSchema.index({ inviteCode: 1 }, { unique: true, sparse: true });
 
 export default
   mongoose.models.Workspace || mongoose.model("Workspace", workspaceSchema);

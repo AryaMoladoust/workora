@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function LoginForm({ registrationOpen }) {
+export default function LoginForm() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
@@ -47,11 +47,9 @@ export default function LoginForm({ registrationOpen }) {
           <input type="password" dir="ltr" autoComplete="current-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
         </label>
         <button className="primary-button" disabled={loading}>{loading ? "در حال ورود..." : "ورود"}</button>
-        {registrationOpen ? (
-          <Link href="/register" className="auth-link">هنوز فضای کاری ندارید؟ ساخت Workspace</Link>
-        ) : (
-          <small className="auth-note">حساب‌ها را مالک فضای کاری می‌سازد. اگر حساب ندارید با او تماس بگیرید.</small>
-        )}
+        <div className="auth-divider"><span>حساب ندارید؟</span></div>
+        <Link href="/register" className="secondary-button auth-register">ثبت‌نام با کد دعوت</Link>
+        <small className="auth-note">کد دعوت را مالک فضای کاری به شما می‌دهد.</small>
       </form>
     </main>
   );

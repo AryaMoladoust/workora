@@ -47,13 +47,15 @@ node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
 ```
 https://<نام-پروژه>.vercel.app/api/setup?token=<SETUP_TOKEN>
 ```
-خروجی باید `"ok": true` و فهرست collectionها باشد: `users, workspaces, memberships, projects, tasks, comments, activities, notifications, conversations, chatmessages, conversationreads, ratelimits, pushsubscriptions, pushconfigs`. اگر خطا دیدید متن آن را برایم بفرستید.
+خروجی باید `"ok": true` و فهرست ۱۲ collection باشد: `users, workspaces, memberships, projects, tasks, comments, activities, notifications, conversations, chatmessages, conversationreads, ratelimits`. اگر خطا دیدید متن آن را برایم بفرستید.
 (بعد از اتمام می‌توانید `SETUP_TOKEN` را از Vercel حذف کنید؛ آن‌وقت این آدرس غیرفعال می‌شود.)
 
 ## ۶) ساخت حساب مالک
 1. `https://<نام-پروژه>.vercel.app/register` را باز کنید.
 2. نام، ایمیل، نام Workspace، رمز و «کد دعوت» (`REGISTRATION_KEY`) را وارد کنید.
-3. از این لحظه ثبت‌نام عمومی **بسته** می‌شود. بقیه‌ی همکاران را از بخش **اعضا → عضو جدید** بسازید و ایمیل/رمز موقت را به خودشان بدهید.
+3. از این لحظه ساخت Workspace جدید **بسته** می‌شود. همکاران را به یکی از این دو روش اضافه کنید:
+   - **کد دعوت (پیشنهادی):** در صفحه‌ی **اعضا** کارت «ثبت‌نام اعضا با کد دعوت» را ببینید → «ساخت کد دعوت و فعال‌سازی». کد (یا لینک ثبت‌نام) را به همکار بدهید؛ او در صفحه‌ی ورود روی «ثبت‌نام با کد دعوت» می‌زند و حساب عضو (بدون دسترسی مدیریتی) می‌سازد. هر وقت خواستید ثبت‌نام را غیرفعال یا کد را عوض کنید.
+   - **ساخت دستی:** **اعضا → عضو جدید** و دادن ایمیل/رمز موقت.
 
 ## ۷) اجرای لوکال روی همان Atlas (اختیاری)
 فایل `.env.local` را بر اساس `.env.example` پر کنید (بدون `NEXT_PUBLIC_REALTIME`) و `npm install` و `npm run dev` بزنید؛ لوکال با WebSocket کار می‌کند و به همان دیتابیس Atlas وصل است. اگر دیتابیس جدا برای تست می‌خواهید `MONGODB_DB=workora_dev` بگذارید.
@@ -70,8 +72,22 @@ Vercel → Project → Settings → Domains → دامنه را اضافه و ر
 | کند بودن کل برنامه | Region توابع Vercel با Region کلاستر Atlas فاصله دارد |
 | ۴۰۴ در `/api/setup` | `SETUP_TOKEN` در Vercel تنظیم نشده یا Redeploy نکرده‌اید |
 
-## ۸) نصب به‌عنوان اپ (PWA) و اعلان‌ها
-جزئیات کامل در فایل `PWA.md` است. خلاصه:
-- هیچ متغیر محیطی اجباری جدیدی لازم نیست؛ اعلان‌ها بعد از Deploy کار می‌کنند.
-- برای تولید (Production) پیشنهاد می‌شود کلید VAPID را ثابت کنید: `npm run vapid` را اجرا کنید و سه مقدار `VAPID_PUBLIC_KEY`، `VAPID_PRIVATE_KEY` و `VAPID_SUBJECT` را در Vercel بگذارید و Redeploy کنید.
-- بعد از Deploy یک بار `/api/setup?token=...` را باز کنید تا collectionهای `pushsubscriptions` و `pushconfigs` ساخته شوند.
+## دیدن دیتابیس: MongoDB Compass یا خود Atlas
+
+### روش ۱: Compass (برنامه‌ی دسکتاپ)
+1. Compass را از mongodb.com/products/tools/compass (رایگان) دانلود و نصب کنید.
+2. در Atlas: **Clusters → Connect → Compass** (یا همان رشته‌ی `MONGODB_URI` فایل env) و رشته‌ی اتصال `mongodb+srv://...` را کپی کنید. اگر `<db_password>` داشت، رمز واقعی را جایش بنویسید.
+3. Compass را باز کنید → **Add new connection** → رشته را در URI بچسبانید → **Connect**.
+4. در ستون چپ، دیتابیس **`workora`** را باز کنید. collectionها: `users`, `memberships`, `projects`, `tasks`, `notes` و ... با کلیک روی هر کدام، سندها را می‌بینید.
+5. بالای فهرست سندها می‌توانید فیلتر بنویسید، مثلاً `{ "kind": "config" }` یا `{ "email": "a@b.com" }`.
+6. فقط مشاهده کنید؛ ویرایش یا حذف دستی سندها می‌تواند برنامه را خراب کند. فیلد `passwordHash` رمز رمزنگاری‌شده است و رمز اصلی نیست.
+
+اگر Compass وصل نشد (Timeout): آی‌پی فعلی شما باید در Atlas → Network Access باشد (`0.0.0.0/0` این را پوشش می‌دهد) و Compass از پروکسی/VPN سیستم استفاده نمی‌کند؛ VPN را در حالت TUN/سیستمی بگذارید.
+
+### روش ۲: بدون نصب، داخل Atlas
+Atlas → منوی چپ **Database → Data Explorer** (یا Clusters → Browse Collections) → دیتابیس `workora`. همان محتوا را داخل مرورگر می‌بینید و از VPN مرورگر استفاده می‌کند.
+
+## بعد از به‌روزرسانی به این نسخه
+1. `npm install` و push به GitHub (Vercel خودکار Deploy می‌کند).
+2. یک بار `/api/setup?token=<SETUP_TOKEN>` را باز کنید تا collectionهای جدید (`notes`، `announcements`، `pushsubscriptions`، `pushconfigs`) ساخته شوند (اگر قبلاً حذفش کرده‌اید، موقتاً دوباره اضافه کنید و Redeploy کنید).
+3. اعلان‌های دستگاه: راهنمای `PWA.md`؛ پیشنهاد می‌شود `npm run vapid` را اجرا و سه مقدار را در Vercel بگذارید.

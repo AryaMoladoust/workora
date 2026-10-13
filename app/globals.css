@@ -113,9 +113,7 @@ body {
   color: var(--text);
   direction: rtl;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  font-feature-settings: "cv11", "ss01";
 }
 button, input, textarea, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
@@ -971,6 +969,72 @@ input[type="date"] { min-height: 44px; }
 /* auth extras */
 .auth-note { text-align: center; color: var(--muted); font-size: 13px; line-height: 1.9; }
 .auth-card .primary-button { text-decoration: none; }
+.auth-divider { display: flex; align-items: center; gap: 12px; color: var(--faint); font-size: 12.5px; margin-top: 4px; }
+.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.auth-register { width: 100%; text-decoration: none; }
+.code-input { text-transform: uppercase; letter-spacing: 3px; text-align: center; font-weight: 800; font-size: 17px; font-family: ui-monospace, Consolas, monospace; }
+
+/* =====================================================================
+   Stage 6: notes, configs, announcements, invite code
+   ===================================================================== */
+.text-ok { color: var(--ok); font-weight: 700; }
+.danger-link { color: var(--danger) !important; }
+.mono { font-family: ui-monospace, "Cascadia Code", Consolas, Menlo, monospace; font-size: 13px; line-height: 1.7; }
+textarea.mono { direction: ltr; text-align: left; }
+.warn-hint { color: var(--warn); font-weight: 600; }
+
+.toast { position: fixed; bottom: 24px; inset-inline-start: 50%; transform: translateX(50%); z-index: 120; padding: 11px 20px; border-radius: 999px; background: var(--text); color: var(--bg); font-weight: 700; font-size: 14px; box-shadow: var(--shadow-md); animation: pop .18s var(--ease); }
+[dir="rtl"] .toast { transform: translateX(50%); }
+
+.note-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.note-card { display: grid; align-content: start; gap: 12px; padding: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); cursor: pointer; transition: transform .18s var(--ease), border-color .18s var(--ease), box-shadow .18s var(--ease); }
+.note-card:hover { transform: translateY(-3px); border-color: var(--accent-ring); box-shadow: var(--shadow-md); }
+.note-card.is-pinned { border-color: var(--accent-ring); background: linear-gradient(180deg, var(--accent-soft), var(--surface) 55%); }
+.note-card-head { display: flex; align-items: center; gap: 10px; }
+.note-card-head h3 { flex: 1; min-width: 0; font-size: 15.5px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note-card-icon { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 11px; color: var(--accent); background: var(--accent-soft); }
+.pin-mark { color: var(--accent); flex: none; }
+.note-card-snippet { color: var(--muted); font-size: 13.5px; line-height: 1.9; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; min-height: 3lh; overflow-wrap: anywhere; }
+.note-card-meta { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12.5px; }
+.note-card.is-config .note-card-icon { color: var(--on-accent); background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { padding: 2px 9px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); font-size: 12px; font-weight: 600; }
+.note-card-foot { display: flex; align-items: center; gap: 10px; padding-top: 12px; border-top: 1px dashed var(--border); }
+.note-card-foot small { flex: 1; color: var(--faint); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note-copy { width: 34px; height: 34px; border-radius: 10px; }
+
+.announce-list { display: grid; gap: 14px; }
+.announce { padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); display: grid; gap: 12px; }
+.announce.is-pinned { border-color: var(--accent-ring); background: linear-gradient(180deg, var(--accent-soft), var(--surface) 60%); }
+.announce header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.announce-icon { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 12px; color: var(--on-accent); background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+.announce-title { flex: 1; min-width: 160px; display: grid; line-height: 1.5; }
+.announce-title h3 { font-size: 16.5px; font-weight: 800; }
+.announce-title small { color: var(--muted); font-size: 12.5px; }
+.announce-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.announce-body { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 2; font-size: 14.5px; }
+
+.announce-banner { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: var(--radius-lg); text-decoration: none; background: var(--surface); border: 1px solid var(--accent-ring); box-shadow: var(--shadow-sm); transition: transform .18s var(--ease), box-shadow .18s var(--ease); }
+.announce-banner:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.announce-banner-text { flex: 1; min-width: 0; display: grid; line-height: 1.6; }
+.announce-banner-text strong { font-size: 15px; }
+.announce-banner-text small { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.announce-banner-meta { color: var(--accent); font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+
+.invite-card { margin-bottom: 20px; }
+.invite-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
+.invite-head h3 { font-size: 16px; font-weight: 800; }
+.invite-head p { color: var(--muted); font-size: 13.5px; max-width: 640px; }
+.invite-body { display: grid; gap: 14px; }
+.invite-code { justify-self: start; padding: 12px 22px; border-radius: 14px; background: var(--accent-soft); border: 1px dashed var(--accent-ring); color: var(--accent); font-family: ui-monospace, Consolas, monospace; font-size: 24px; font-weight: 800; letter-spacing: 4px; user-select: all; }
+.invite-code.is-off { opacity: .45; text-decoration: line-through; }
+.invite-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.invite-status { font-size: 13.5px; color: var(--muted); }
+
+@media (max-width: 640px) {
+  .note-grid { grid-template-columns: 1fr; }
+  .announce-banner { flex-wrap: wrap; }
+}
 
 /* =====================================================================
    10. Bottom navigation  ·  glass pill for phones & tablets (≤ 960px)
@@ -1086,7 +1150,6 @@ input[type="date"] { min-height: 44px; }
   }
   @keyframes bnav-rise { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
 
-  .bnav-sheet { max-height: calc(100dvh - var(--bnav-space) - var(--header-h) - 28px); overflow-y: auto; overscroll-behavior: contain; }
   .bnav-sheet-head { display: flex; align-items: center; gap: 12px; padding: 6px 8px 12px; margin-bottom: 4px; border-bottom: 1px solid color-mix(in srgb, var(--text) 9%, transparent); }
   .bnav-sheet-head div { flex: 1; display: grid; min-width: 0; line-height: 1.45; }
   .bnav-sheet-head strong { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1108,8 +1171,55 @@ input[type="date"] { min-height: 44px; }
   .bottom-nav, .bnav-indicator, .bnav-icon, .bnav-item, .bnav-sheet { transition: none; animation: none; }
 }
 
+.bnav-sheet { max-height: calc(100dvh - var(--bnav-space) - var(--header-h) - 28px); overflow-y: auto; overscroll-behavior: contain; }
+
+/* toasts and floating bits must clear the bottom bar on phones */
+@media (max-width: 960px) {
+  .toast { bottom: calc(var(--bnav-space) + 14px); }
+}
+
+
 /* =====================================================================
-   11. PWA controls (install + push rows) and safe areas
+   11. UI fonts (selectable) + typography
+   ===================================================================== */
+[data-font="vazirmatn"] { --font: var(--font-inter), var(--font-vazirmatn), "Vazirmatn", "Segoe UI", Tahoma, system-ui, sans-serif; }
+[data-font="plex"] { --font: var(--font-plex), var(--font-inter), "Segoe UI", Tahoma, system-ui, sans-serif; }
+[data-font="noto"] { --font: var(--font-inter), var(--font-noto), "Segoe UI", Tahoma, system-ui, sans-serif; }
+body { -moz-osx-font-smoothing: grayscale; font-feature-settings: "ss01", "cv11"; letter-spacing: 0; }
+h1, h2, h3, .card-title, .stat-value, .brand-text strong { font-feature-settings: "ss01"; letter-spacing: -.1px; }
+
+.font-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.font-option { display: grid; gap: 2px; justify-items: start; padding: 10px 10px 8px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); text-align: start; transition: border-color .15s var(--ease), background .15s var(--ease); }
+.font-option:hover { border-color: var(--accent-ring); }
+.font-option.is-selected { border-color: var(--accent); background: var(--accent-soft); }
+.font-option strong { font-size: 13px; }
+.font-option small { color: var(--muted); font-size: 11px; }
+.font-preview { margin-top: 4px; font-size: 15px; font-weight: 600; color: var(--text); }
+.font-sample-vazirmatn .font-preview { font-family: var(--font-vazirmatn), sans-serif; }
+.font-sample-plex .font-preview { font-family: var(--font-plex), sans-serif; }
+.font-sample-noto .font-preview { font-family: var(--font-noto), sans-serif; }
+.theme-popover { min-width: 330px; }
+
+/* =====================================================================
+   12. Skeleton loading (shown instantly while a page's data streams in)
+   ===================================================================== */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.sk { display: block; flex: none; max-width: 100%; border-radius: 8px; background: color-mix(in srgb, var(--text) 9%, transparent); animation: sk-pulse 1.5s ease-in-out infinite; }
+.sk-circle { border-radius: 50% !important; }
+@keyframes sk-pulse { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }
+.sk-stack { display: grid; gap: 10px; min-width: 0; }
+.sk-row { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.sk-row > .sk-stack { flex: 1; }
+.sk-hero { height: 150px; border-radius: var(--radius-xl); }
+.sk-tile { border-radius: var(--radius-lg); }
+.skeleton-page { display: grid; gap: 22px; }
+.sk-card-pad { display: grid; gap: 14px; padding: 22px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); min-width: 0; }
+.sk-donut { width: 170px; height: 170px; }
+@media (prefers-reduced-motion: reduce) { .sk { animation: none; opacity: .7; } }
+
+
+/* =====================================================================
+   13. PWA controls (install + push rows) and safe areas
    ===================================================================== */
 body { padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px); }
 .pwa-menu { display: grid; gap: 2px; padding-top: 6px; margin-top: 6px; border-top: 1px solid var(--border); }
@@ -1120,3 +1230,4 @@ body { padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right,
 .pwa-switch.is-on { background: var(--accent); }
 .pwa-switch.is-on::after { inset-inline-start: 19px; }
 @media (display-mode: standalone) { .header { padding-top: env(safe-area-inset-top, 0px); height: calc(var(--header-h) + env(safe-area-inset-top, 0px)); } }
+.sk-push { margin-inline-start: auto; }

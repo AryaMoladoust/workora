@@ -49,7 +49,7 @@ export const BOTTOM_NAV_ITEMS = [
   { key: "projects", href: "/projects", label: "پروژه‌ها", icon: "folder" },
   { key: "tasks", href: "/tasks", label: "وظایف", icon: "tasks" },
   { key: "chat", href: "/chat", label: "چت", icon: "chat" },
-  { key: "account", href: null, label: "حساب کاربری", icon: "user" },
+  { key: "account", href: null, label: "حساب من", icon: "user" },
 ];
 
 // Pages that belong to the "account" tab even though they are not a tab of their own.

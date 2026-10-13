@@ -30,6 +30,7 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
   const atBottomRef = useRef(true);
   const forceScrollRef = useRef(false);
   const readTimer = useRef(null);
+  const syncRef = useRef(null); // server time of the last successful sync (to also catch deletions)
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
   // callbacks from the parent may change identity on every render; keep them out of effect deps
@@ -74,6 +75,7 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
         if (!alive) return;
         setMessages(d.messages);
         setHasMore(d.hasMore);
+        if (d.now) syncRef.current = new Date(new Date(d.now).getTime() - 5000).toISOString();
         scheduleRead();
       })
       .catch((e) => alive && setError(e.message))
@@ -87,15 +89,23 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
   const catchUp = useCallback(async () => {
     const real = messagesRef.current.filter((m) => !m.pending && !m.failed);
     const last = real[real.length - 1];
-    const url = last
-      ? `/api/chat/conversations/${convId}/messages?after=${encodeURIComponent(last.createdAt)}`
-      : `/api/chat/conversations/${convId}/messages?limit=40`;
+    const params = new URLSearchParams();
+    if (last) params.set("after", last.createdAt);
+    else params.set("limit", "40");
+    if (syncRef.current) params.set("since", syncRef.current);
     try {
-      const r = await fetch(url, { cache: "no-store" });
+      const r = await fetch(`/api/chat/conversations/${convId}/messages?${params}`, { cache: "no-store" });
       const d = await r.json();
-      if (!r.ok || !d.messages?.length) return;
-      setMessages((list) => mergeMessages(list, d.messages));
-      if (d.messages.some((m) => m.authorId !== me.id)) scheduleRead();
+      if (!r.ok) return;
+      if (d.now) syncRef.current = new Date(new Date(d.now).getTime() - 5000).toISOString();
+      if (d.messages?.length) {
+        setMessages((list) => mergeMessages(list, d.messages));
+        if (d.messages.some((m) => m.authorId !== me.id)) scheduleRead();
+      }
+      if (d.deleted?.length) {
+        const gone = new Set(d.deleted);
+        setMessages((list) => list.map((m) => (gone.has(m.id) ? { ...m, deleted: true, body: "" } : m)));
+      }
     } catch {
       /* offline */
     }
@@ -122,7 +132,7 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
     if (status === "open") return undefined;
     const timer = setInterval(() => {
       if (!document.hidden) catchUp();
-    }, status === "polling" ? 4000 : 8000);
+    }, status === "polling" ? 3000 : 8000);
     return () => clearInterval(timer);
   }, [status, catchUp]);
 
