@@ -9,7 +9,7 @@ const notificationSchema = new mongoose.Schema(
     type: { type: String, required: true },
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: "Project", default: null },
     projectName: { type: String, default: "" },
-    entityType: { type: String, enum: ["task", "project", "comment", "announcement"], required: true },
+    entityType: { type: String, enum: ["task", "project", "comment", "announcement", "member"], required: true },
     entityId: { type: mongoose.Schema.Types.ObjectId, default: null },
     entityTitle: { type: String, default: "" },
     meta: { type: mongoose.Schema.Types.Mixed, default: {} },

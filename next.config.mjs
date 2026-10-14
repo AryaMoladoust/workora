@@ -8,6 +8,7 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
+  serverExternalPackages: ["nodemailer"],
   async headers() {
     return [
       { source: "/(.*)", headers: securityHeaders },

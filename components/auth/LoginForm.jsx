@@ -51,8 +51,8 @@ export default function LoginForm() {
         </label>
         <button className="primary-button" disabled={loading}>{loading ? "در حال ورود..." : "ورود"}</button>
         <div className="auth-divider"><span>حساب ندارید؟</span></div>
-        <Link href="/register" className="secondary-button auth-register">ثبت‌نام با کد دعوت</Link>
-        <small className="auth-note">کد دعوت را مالک فضای کاری به شما می‌دهد.</small>
+        <Link href="/register" className="secondary-button auth-register">ثبت‌نام</Link>
+        <small className="auth-note">بعد از ثبت‌نام باید مالک فضای کاری درخواستتان را تایید کند (یا با کد دعوت مستقیم وارد شوید).</small>
       </form>
     </main>
   );

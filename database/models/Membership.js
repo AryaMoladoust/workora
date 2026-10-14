@@ -31,6 +31,13 @@ const membershipSchema = new mongoose.Schema(
       default: true,
       index: true,
     },
+    // "pending" = signed up with an e-mail and waits for an owner/manager to approve (cannot log in yet).
+    // Older documents have no status and are treated as active.
+    status: {
+      type: String,
+      enum: ["pending", "active"],
+      default: "active",
+    },
     joinedAt: {
       type: Date,
       default: Date.now,

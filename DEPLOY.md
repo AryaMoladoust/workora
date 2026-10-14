@@ -91,3 +91,12 @@ Atlas → منوی چپ **Database → Data Explorer** (یا Clusters → Browse
 1. `npm install` و push به GitHub (Vercel خودکار Deploy می‌کند).
 2. یک بار `/api/setup?token=<SETUP_TOKEN>` را باز کنید تا collectionهای جدید (`notes`، `announcements`، `pushsubscriptions`، `pushconfigs`) ساخته شوند (اگر قبلاً حذفش کرده‌اید، موقتاً دوباره اضافه کنید و Redeploy کنید).
 3. اعلان‌های دستگاه: راهنمای `PWA.md`؛ پیشنهاد می‌شود `npm run vapid` را اجرا و سه مقدار را در Vercel بگذارید.
+
+## ایمیل «درخواست شما تایید شد»
+1. در حساب Google بخش **Security** ← «2-Step Verification» را روشن کنید، بعد از همان‌جا **App passwords** یک رمز ۱۶ حرفی بسازید.
+2. در Vercel ← Settings ← Environment Variables این‌ها را اضافه کنید:
+   - `SMTP_USER` = آدرس Gmail فرستنده
+   - `SMTP_PASS` = همان App Password (نه رمز اصلی Gmail)
+   - `APP_URL` = آدرس سایت، مثل `https://your-project.vercel.app`
+   - (اختیاری) `MAIL_FROM` = `Workora <آدرس-شما@gmail.com>`
+3. یک‌بار Redeploy کنید. بدون این متغیرها ایمیلی ارسال نمی‌شود و فقط خود تایید انجام می‌شود.

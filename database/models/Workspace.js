@@ -36,6 +36,8 @@ const workspaceSchema = new mongoose.Schema(
     // Self-registration of team members: people who know the code can create a member account.
     inviteCode: { type: String, default: undefined },
     inviteEnabled: { type: Boolean, default: false },
+    // Sign-up requests (Gmail + owner approval). Treated as ON unless explicitly false.
+    signupRequestsEnabled: { type: Boolean, default: true },
   },
   {
     timestamps: true,

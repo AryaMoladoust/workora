@@ -68,8 +68,10 @@ export async function POST(request) {
     }).sort({ createdAt: 1 });
 
     if (!membership) {
+      // correct password but not allowed in yet: tell sign-up requests they are waiting for approval
+      const pending = await Membership.exists({ userId: user._id, status: "pending" });
       return NextResponse.json(
-        { error: "حساب شما هنوز به Workspaceای متصل نیست." },
+        { error: pending ? "درخواست ثبت‌نام شما هنوز توسط مالک تایید نشده است. بعد از تایید می‌توانید وارد شوید." : "حساب شما هنوز به Workspaceای متصل نیست." },
         { status: 403 }
       );
     }

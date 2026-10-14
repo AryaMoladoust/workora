@@ -2,11 +2,13 @@ import mongoose from "mongoose";
 import { requireAuth } from "../../lib/require-auth";
 import { connectToDatabase } from "../../lib/db";
 import { hasPermission, isOwner, PERMISSION_IDS } from "../../lib/permissions";
-import { listWorkspaceMembers } from "../../lib/members";
+import { listPendingRequests, listWorkspaceMembers } from "../../lib/members";
+import { signupDomainHint } from "../../lib/signup";
 import { dateTime, fa } from "../../lib/format";
 import Project from "../../database/models/Project";
 import MembersManager from "../../components/members/MembersManager";
 import InviteCard from "../../components/members/InviteCard";
+import SignupRequests from "../../components/members/SignupRequests";
 import { displayInviteCode } from "../../lib/invite";
 import Workspace from "../../database/models/Workspace";
 
@@ -39,8 +41,12 @@ export default async function MembersPage() {
   const activeCount = prepared.filter((m) => m.isActive).length;
 
   let invite = null;
+  let requests = [];
+  let signupEnabled = true;
   if (canManage) {
-    const workspace = await Workspace.findById(current.workspace.id).select("inviteCode inviteEnabled").lean();
+    requests = await listPendingRequests(current.workspace.id);
+    const workspace = await Workspace.findById(current.workspace.id).select("inviteCode inviteEnabled signupRequestsEnabled").lean();
+    signupEnabled = workspace?.signupRequestsEnabled !== false;
     invite = {
       enabled: Boolean(workspace?.inviteEnabled && workspace?.inviteCode),
       code: workspace?.inviteCode ? displayInviteCode(workspace.inviteCode) : "",
@@ -56,6 +62,7 @@ export default async function MembersPage() {
           <p>{fa(activeCount)} عضو فعال در «{current.workspace.name}»</p>
         </div>
       </div>
+      {canManage && <SignupRequests initialEnabled={signupEnabled} requests={requests} domainHint={signupDomainHint()} />}
       {invite && <InviteCard initial={invite} />}
       <MembersManager members={prepared} canManage={canManage} currentUserId={current.user.id} grantable={grantable} />
     </div>

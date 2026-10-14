@@ -28,6 +28,10 @@ export async function PATCH(request, { params }) {
     const membership = await Membership.findOne({ _id: params.membershipId, workspaceId: current.workspace.id });
     if (!membership) return NextResponse.json({ error: "عضو پیدا نشد." }, { status: 404 });
 
+    if (membership.status === "pending") {
+      return NextResponse.json({ error: "این درخواست ثبت‌نام است؛ ابتدا آن را تایید یا رد کنید." }, { status: 400 });
+    }
+
     const user = await User.findById(membership.userId);
     if (!user) return NextResponse.json({ error: "کاربر پیدا نشد." }, { status: 404 });
 
