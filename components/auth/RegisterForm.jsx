@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import OtpVerify from "./OtpVerify";
 
 // mode "owner": first registration, creates the workspace.
 // mode "join": team member with an invite code (instant access).
@@ -10,7 +11,8 @@ import Link from "next/link";
 export default function RegisterForm({ mode: initialMode, needsKey = false, initialCode = "", canRequest = false, domainHint = "", mailEnabled = false }) {
   const router = useRouter();
   const [mode, setMode] = useState(initialMode);
-  const [submitted, setSubmitted] = useState(false);
+  const [step, setStep] = useState("form"); // request mode: "form" → "verify" (4-digit code)
+  const [resendIn, setResendIn] = useState(60);
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "", workspaceName: "", registrationKey: "", inviteCode: initialCode });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,8 +37,9 @@ export default function RegisterForm({ mode: initialMode, needsKey = false, init
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "ثبت‌نام انجام نشد.");
-      if (data.pending) {
-        setSubmitted(true);
+      if (data.step === "verify") {
+        setResendIn(data.resendIn || 60);
+        setStep("verify");
         return;
       }
       router.replace("/dashboard");
@@ -48,24 +51,15 @@ export default function RegisterForm({ mode: initialMode, needsKey = false, init
     }
   }
 
-  if (submitted) {
+  if (step === "verify") {
     return (
       <main className="auth-page">
-        <div className="auth-card">
+        <div className="auth-card otp-card">
           <span className="auth-brand">
             <img src="/logo.png" alt="" width="36" height="36" />
             Workora
           </span>
-          <h1>درخواست شما ثبت شد</h1>
-          <div className="auth-success" role="status">
-            ایمیل <strong dir="ltr">{form.email}</strong> برای بررسی به مالک فضای کاری رسید. بعد از تایید او می‌توانید با همین ایمیل و رمز عبور وارد شوید.
-          </div>
-          <p>
-            {mailEnabled
-              ? "به‌محض تایید، یک ایمیل اطلاع‌رسانی برایتان ارسال می‌شود (پوشه‌ی Spam را هم نگاه کنید). تا آن موقع امکان ورود وجود ندارد."
-              : "تا قبل از تایید امکان ورود وجود ندارد؛ از مالک بخواهید درخواست را تایید کند و بعد وارد شوید."}
-          </p>
-          <Link href="/login" className="secondary-button auth-register">رفتن به صفحه ورود</Link>
+          <OtpVerify email={form.email.trim().toLowerCase()} initialCooldown={resendIn} mailEnabled={mailEnabled} onBack={() => setStep("form")} />
         </div>
       </main>
     );
@@ -81,7 +75,7 @@ export default function RegisterForm({ mode: initialMode, needsKey = false, init
         <h1>{isRequest ? "درخواست ثبت‌نام" : isJoin ? "ثبت‌نام در تیم" : "ساخت فضای کاری"}</h1>
         <p>
           {isRequest
-            ? `ایمیل ${domainHint || ""} خودتان را وارد کنید. بعد از اینکه مالک فضای کاری درخواست را تایید کرد، می‌توانید وارد شوید.`
+            ? `ایمیل ${domainHint || ""} خودتان را وارد کنید. یک کد ۴ رقمی به آن ایمیل می‌فرستیم و بعد از تایید ایمیل، مالک فضای کاری درخواستتان را بررسی می‌کند.`
             : isJoin
             ? "کد دعوت را از مالک فضای کاری بگیرید و حساب خودتان را بسازید."
             : "حساب مالک Workspace را ایجاد کنید. اعضای تیم با «کد دعوت» یا از بخش «اعضا» اضافه می‌شوند."}
@@ -118,7 +112,7 @@ export default function RegisterForm({ mode: initialMode, needsKey = false, init
             <small>مقداری که در تنظیمات Vercel گذاشته‌اید.</small>
           </label>
         )}
-        <button className="primary-button" disabled={loading}>{loading ? "در حال ثبت..." : isRequest ? "ارسال درخواست ثبت‌نام" : isJoin ? "ثبت‌نام و ورود" : "ساخت Workspace"}</button>
+        <button className="primary-button" disabled={loading}>{loading ? "در حال ارسال..." : isRequest ? "ارسال کد تایید" : isJoin ? "ثبت‌نام و ورود" : "ساخت Workspace"}</button>
         {canRequest && isRequest && (
           <button type="button" className="auth-link auth-link-button" onClick={() => { setError(""); setMode("join"); }}>کد دعوت دارید؟ ثبت‌نام با کد</button>
         )}

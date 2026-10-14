@@ -52,7 +52,6 @@ export async function PATCH(request, { params }) {
           await sendApprovalEmail({
             to: user.email,
             name: user.firstName,
-            workspaceName: current.workspace.name,
             loginUrl: `${origin.replace(/\/$/, "")}/login`,
           });
           email = "sent";

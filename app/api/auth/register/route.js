@@ -9,6 +9,8 @@ import { describeServerError } from "../../../../lib/errors";
 import { normalizeInviteCode } from "../../../../lib/invite";
 import { logActivity, notify } from "../../../../lib/activity";
 import { emailDomainAllowed, findPrimaryWorkspace, signupDomainHint, signupRequestsEnabled } from "../../../../lib/signup";
+import { OTP_MAX_SENDS_PER_HOUR, OTP_RESEND_SECONDS, deliverCode, generateCode, hashCode, otpExpiry } from "../../../../lib/otp";
+import SignupVerification from "../../../../database/models/SignupVerification";
 import User from "../../../../database/models/User";
 import Workspace from "../../../../database/models/Workspace";
 import Membership from "../../../../database/models/Membership";
@@ -103,10 +105,10 @@ async function joinWithInviteCode(request, body) {
   }
 }
 
-// Anyone can ask for access with their (Gmail) address. The account is created but stays "pending"
-// (no session, cannot log in) until an owner / manager approves it on the Members page.
+// Step 1 of a sign-up request: validate the form and e-mail a 4-digit code.
+// The account is NOT created yet – that happens in /api/auth/verify-email once the code is correct,
+// and only then is the owner asked to approve.
 async function requestAccess(request, body) {
-  let createdUserId = null;
   try {
     const limit = await hit(`signup-request:ip:${clientIp(request)}`, { max: 8, windowSec: 3600 });
     if (limit.limited) {
@@ -140,41 +142,34 @@ async function requestAccess(request, body) {
       );
     }
 
+    // protects the mailbox of the address owner from being flooded with codes
+    const perEmail = await hit(`signup-otp:email:${email}`, { max: OTP_MAX_SENDS_PER_HOUR, windowSec: 3600 });
+    if (perEmail.limited) {
+      return NextResponse.json({ error: "برای این ایمیل بیش از حد کد فرستاده شده است. بعداً دوباره تلاش کنید." }, { status: 429 });
+    }
+
+    const code = generateCode();
     const passwordHash = await bcrypt.hash(password, 12);
-    const user = await User.create({ firstName, lastName, email, passwordHash });
-    createdUserId = user._id;
+    await SignupVerification.findOneAndUpdate(
+      { email },
+      { $set: { firstName, lastName, passwordHash, codeHash: hashCode(email, code), attempts: 0, lastSentAt: new Date(), expiresAt: otpExpiry() } },
+      { upsert: true, new: true }
+    );
 
-    await Membership.create({
-      workspaceId: workspace._id,
-      userId: user._id,
-      role: "member",
-      permissions: [],
-      isActive: false,
-      status: "pending",
-    });
+    try {
+      await deliverCode({ email, name: firstName, code });
+    } catch (mailError) {
+      await SignupVerification.deleteOne({ email }).catch(() => {});
+      if (mailError?.code === "MAIL_NOT_CONFIGURED") {
+        console.error("OTP_MAIL_NOT_CONFIGURED: set SMTP_USER and SMTP_PASS");
+        return NextResponse.json({ error: "ارسال ایمیل روی سرور تنظیم نشده است. با مالک تماس بگیرید." }, { status: 503 });
+      }
+      console.error("OTP_MAIL_ERROR", mailError);
+      return NextResponse.json({ error: "ارسال ایمیل ناموفق بود. آدرس را بررسی کنید و دوباره تلاش کنید." }, { status: 502 });
+    }
 
-    // tell the owners / managers (best effort)
-    const pseudo = { workspace: { id: String(workspace._id) }, user: { id: String(user._id), firstName, lastName } };
-    const entity = { entityType: "member", entityId: user._id, entityTitle: `${firstName} ${lastName}`, meta: { email } };
-    await logActivity(pseudo, { type: "member.signup_request", ...entity });
-    const managers = await Membership.find({
-      workspaceId: workspace._id,
-      isActive: true,
-      $or: [{ role: "owner" }, { permissions: "members.manage" }],
-    })
-      .select("userId")
-      .lean();
-    await notify(pseudo, managers.map((m) => m.userId), { type: "member.signup_request", ...entity });
-
-    return NextResponse.json({ ok: true, pending: true }, { status: 201 });
+    return NextResponse.json({ ok: true, step: "verify", email, resendIn: OTP_RESEND_SECONDS });
   } catch (error) {
-    if (createdUserId) {
-      await Membership.deleteMany({ userId: createdUserId }).catch(() => {});
-      await User.deleteOne({ _id: createdUserId }).catch(() => {});
-    }
-    if (error?.code === 11000) {
-      return NextResponse.json({ error: "اطلاعات واردشده قبلاً استفاده شده است." }, { status: 409 });
-    }
     console.error("SIGNUP_REQUEST_ERROR", error);
     const described = describeServerError(error);
     return NextResponse.json({ error: described.message }, { status: described.status });
