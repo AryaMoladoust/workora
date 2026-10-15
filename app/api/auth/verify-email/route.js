@@ -32,11 +32,22 @@ export async function POST(request) {
 
     // count the attempt atomically BEFORE comparing, so parallel guesses cannot exceed the limit
     const record = await SignupVerification.findOneAndUpdate(
-      { email, expiresAt: { $gt: new Date() }, attempts: { $lt: OTP_MAX_ATTEMPTS } },
+      { email, codeExpiresAt: { $gt: new Date() }, attempts: { $lt: OTP_MAX_ATTEMPTS } },
       { $inc: { attempts: 1 } },
       { new: true }
     );
-    if (!record) return NextResponse.json({ error: EXPIRED, expired: true }, { status: 400 });
+    if (!record) {
+      // explain why: attempts used up, code timed out (a new one can be requested), or nothing pending at all
+      const existing = await SignupVerification.findOne({ email, expiresAt: { $gt: new Date() } }).lean();
+      if (existing && existing.attempts >= OTP_MAX_ATTEMPTS) {
+        await SignupVerification.deleteOne({ _id: existing._id });
+        return NextResponse.json({ error: "تعداد تلاش‌ها تمام شد. دوباره درخواست ثبت‌نام بدهید.", expired: true }, { status: 400 });
+      }
+      if (existing) {
+        return NextResponse.json({ error: "مهلت این کد تمام شده است. روی «ارسال مجدد» بزنید تا کد جدید بگیرید.", codeExpired: true }, { status: 400 });
+      }
+      return NextResponse.json({ error: EXPIRED, expired: true }, { status: 400 });
+    }
 
     if (!codeMatches(email, code, record.codeHash)) {
       const left = OTP_MAX_ATTEMPTS - record.attempts;

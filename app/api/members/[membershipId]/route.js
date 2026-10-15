@@ -9,6 +9,14 @@ import { logActivity } from "../../../../lib/activity";
 import { validateName, validatePassword } from "../../../../lib/validation";
 import User from "../../../../database/models/User";
 import Membership from "../../../../database/models/Membership";
+import Project from "../../../../database/models/Project";
+import Task from "../../../../database/models/Task";
+import Note from "../../../../database/models/Note";
+import Notification from "../../../../database/models/Notification";
+import PushSubscription from "../../../../database/models/PushSubscription";
+import Conversation from "../../../../database/models/Conversation";
+import ConversationRead from "../../../../database/models/ConversationRead";
+import ChatMessage from "../../../../database/models/ChatMessage";
 
 export const runtime = "nodejs";
 
@@ -116,5 +124,70 @@ export async function PATCH(request, { params }) {
   } catch (error) {
     console.error("MEMBER_UPDATE_ERROR", error);
     return NextResponse.json({ error: "ویرایش عضو انجام نشد." }, { status: 500 });
+  }
+}
+
+// Permanently removes a member from the workspace (unlike "deactivate", this cannot be undone).
+// Their comments, chat messages and tasks they created stay and show as "deleted user".
+export async function DELETE(request, { params }) {
+  params = await params;
+  const current = await getCurrentUser();
+  if (!current) return NextResponse.json({ error: "احراز هویت لازم است." }, { status: 401 });
+  if (!hasPermission(current, "members.manage")) {
+    return NextResponse.json({ error: "اجازه حذف عضو ندارید." }, { status: 403 });
+  }
+  if (!mongoose.isValidObjectId(params.membershipId)) {
+    return NextResponse.json({ error: "شناسه نامعتبر است." }, { status: 400 });
+  }
+
+  try {
+    await connectToDatabase();
+    const workspaceId = current.workspace.id;
+    const membership = await Membership.findOne({ _id: params.membershipId, workspaceId });
+    if (!membership) return NextResponse.json({ error: "عضو پیدا نشد." }, { status: 404 });
+    if (membership.status === "pending") {
+      return NextResponse.json({ error: "این یک درخواست ثبت‌نام است؛ از بخش «درخواست‌های ثبت‌نام» رد کنید." }, { status: 400 });
+    }
+    if (membership.role === "owner") {
+      return NextResponse.json({ error: "مالک را نمی‌توان حذف کرد." }, { status: 400 });
+    }
+    if (String(membership.userId) === current.user.id) {
+      return NextResponse.json({ error: "نمی‌توانید خودتان را حذف کنید." }, { status: 400 });
+    }
+    // Non-owner managers cannot remove other managers.
+    if (!isOwner(current) && (membership.permissions || []).includes("members.manage")) {
+      return NextResponse.json({ error: "اجازه حذف این عضو را ندارید." }, { status: 403 });
+    }
+
+    const userId = membership.userId;
+    const user = await User.findById(userId).select("firstName lastName email").lean();
+    const name = user ? `${user.firstName} ${user.lastName}`.trim() : "کاربر";
+
+    // 1) access: out of projects, tasks lose their assignee
+    await Project.updateMany({ workspaceId, memberIds: userId }, { $pull: { memberIds: userId } });
+    await Task.updateMany({ workspaceId, assigneeId: userId }, { $set: { assigneeId: null } });
+
+    // 2) personal data: private notes, notifications, push devices, read markers, direct chats
+    await Note.deleteMany({ workspaceId, ownerId: userId, scope: "private" });
+    await Notification.deleteMany({ workspaceId, userId });
+    await PushSubscription.deleteMany({ workspaceId, userId });
+    const direct = await Conversation.find({ workspaceId, type: "direct", participantIds: userId }).select("_id").lean();
+    const directIds = direct.map((c) => c._id);
+    if (directIds.length) {
+      await ChatMessage.deleteMany({ conversationId: { $in: directIds } });
+      await ConversationRead.deleteMany({ conversationId: { $in: directIds } });
+      await Conversation.deleteMany({ _id: { $in: directIds } });
+    }
+    await ConversationRead.deleteMany({ userId });
+
+    // 3) the membership, and the account itself when it belongs to no other workspace (frees the e-mail)
+    await Membership.deleteOne({ _id: membership._id });
+    if (!(await Membership.exists({ userId }))) await User.deleteOne({ _id: userId });
+
+    await logActivity(current, { type: "member.removed", entityType: "member", entityId: userId, entityTitle: name, meta: { email: user?.email || "" } });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("MEMBER_DELETE_ERROR", error);
+    return NextResponse.json({ error: "حذف عضو انجام نشد." }, { status: 500 });
   }
 }

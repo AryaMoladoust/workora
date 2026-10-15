@@ -3,7 +3,7 @@ import { connectToDatabase } from "../../../../lib/db";
 import { clientIp, hit } from "../../../../lib/rate-limit";
 import { normalizeEmail } from "../../../../lib/validation";
 import { describeServerError } from "../../../../lib/errors";
-import { OTP_MAX_SENDS_PER_HOUR, OTP_RESEND_SECONDS, deliverCode, generateCode, hashCode, otpExpiry } from "../../../../lib/otp";
+import { OTP_MAX_SENDS_PER_HOUR, OTP_RESEND_SECONDS, deliverCode, generateCode, hashCode, otpExpiry, recordExpiry } from "../../../../lib/otp";
 import SignupVerification from "../../../../database/models/SignupVerification";
 
 export const runtime = "nodejs";
@@ -29,7 +29,8 @@ export async function POST(request) {
     const waited = (Date.now() - new Date(record.lastSentAt).getTime()) / 1000;
     if (waited < OTP_RESEND_SECONDS) {
       const wait = Math.ceil(OTP_RESEND_SECONDS - waited);
-      return NextResponse.json({ error: `${wait.toLocaleString("fa-IR")} ثانیه‌ی دیگر می‌توانید دوباره بفرستید.`, retryAfterSec: wait }, { status: 429 });
+      const clock = `${String(Math.floor(wait / 60)).padStart(2, "0")}:${String(wait % 60).padStart(2, "0")}`;
+      return NextResponse.json({ error: `بعد از ${clock} دقیقه می‌توانید کد جدید بگیرید.`, retryAfterSec: wait }, { status: 429 });
     }
 
     const perEmail = await hit(`signup-otp:email:${email}`, { max: OTP_MAX_SENDS_PER_HOUR, windowSec: 3600 });
@@ -40,7 +41,7 @@ export async function POST(request) {
     const code = generateCode();
     await SignupVerification.updateOne(
       { _id: record._id },
-      { $set: { codeHash: hashCode(email, code), attempts: 0, lastSentAt: new Date(), expiresAt: otpExpiry() } }
+      { $set: { codeHash: hashCode(email, code), attempts: 0, lastSentAt: new Date(), codeExpiresAt: otpExpiry(), expiresAt: recordExpiry() } }
     );
 
     try {

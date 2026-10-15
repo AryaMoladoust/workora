@@ -9,7 +9,7 @@ import { describeServerError } from "../../../../lib/errors";
 import { normalizeInviteCode } from "../../../../lib/invite";
 import { logActivity, notify } from "../../../../lib/activity";
 import { emailDomainAllowed, findPrimaryWorkspace, signupDomainHint, signupRequestsEnabled } from "../../../../lib/signup";
-import { OTP_MAX_SENDS_PER_HOUR, OTP_RESEND_SECONDS, deliverCode, generateCode, hashCode, otpExpiry } from "../../../../lib/otp";
+import { OTP_MAX_SENDS_PER_HOUR, OTP_RESEND_SECONDS, deliverCode, generateCode, hashCode, otpExpiry, recordExpiry } from "../../../../lib/otp";
 import SignupVerification from "../../../../database/models/SignupVerification";
 import User from "../../../../database/models/User";
 import Workspace from "../../../../database/models/Workspace";
@@ -152,7 +152,7 @@ async function requestAccess(request, body) {
     const passwordHash = await bcrypt.hash(password, 12);
     await SignupVerification.findOneAndUpdate(
       { email },
-      { $set: { firstName, lastName, passwordHash, codeHash: hashCode(email, code), attempts: 0, lastSentAt: new Date(), expiresAt: otpExpiry() } },
+      { $set: { firstName, lastName, passwordHash, codeHash: hashCode(email, code), attempts: 0, lastSentAt: new Date(), codeExpiresAt: otpExpiry(), expiresAt: recordExpiry() } },
       { upsert: true, new: true }
     );
 

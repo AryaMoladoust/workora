@@ -10,20 +10,50 @@ const SCATTER = [
   { sx: "-30px", sy: "80px", sr: "-14deg" },
   { sx: "80px", sy: "-70px", sr: "26deg" },
 ];
+// Row position and orbit position of box i out of n (evenly spaced on a circle, first one at the top).
+function positions(i, n) {
+  const angle = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+  return {
+    "--rx": `calc((var(--box-w) + var(--gap)) * ${i - (n - 1) / 2})`,
+    "--ox": `calc(var(--r) * ${Math.cos(angle).toFixed(4)})`,
+    "--oy": `calc(var(--r) * ${Math.sin(angle).toFixed(4)})`,
+  };
+}
 const PERSIAN = "۰۱۲۳۴۵۶۷۸۹";
 const toDigits = (value) => String(value || "").replace(/[۰-۹]/g, (c) => String(PERSIAN.indexOf(c))).replace(/\D/g, "");
+const clock = (total) => `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Step 2 of a sign-up request: enter the 4-digit code sent by e-mail.
-// input (boxes fly in) → verifying (the 4 boxes orbit around each other) → success (boxes merge into a check).
-export default function OtpVerify({ email, initialCooldown = 60, mailEnabled = false, onBack }) {
-  const [digits, setDigits] = useState(["", "", "", ""]);
+// Enter the code sent by e-mail (4 digits for sign-up, 6 for password reset).
+// input (boxes fly in) → verifying (the boxes orbit around each other) → success (boxes merge into a check).
+const DEFAULT_SUCCESS = {
+  title: "ایمیل شما تایید شد",
+  text: "درخواست شما برای تایید به مالک فضای کاری رسید.",
+  note: null, // falls back to the sign-up wording below
+  href: "/login",
+  label: "رفتن به صفحه ورود",
+};
+
+export default function OtpVerify({
+  email,
+  length = 4,
+  initialCooldown = 600,
+  mailEnabled = false,
+  onBack,
+  verifyUrl = "/api/auth/verify-email",
+  resendUrl = "/api/auth/resend-code",
+  success: successCopy = DEFAULT_SUCCESS,
+  backLabel = "ویرایش ایمیل",
+}) {
+  const emptyDigits = () => Array.from({ length }, () => "");
+  const [digits, setDigits] = useState(emptyDigits);
   const [phase, setPhase] = useState("input");
   const [stageKey, setStageKey] = useState(0); // remounting the stage replays the intro animation after a wrong code
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [shake, setShake] = useState(false);
   const [expired, setExpired] = useState(false);
+  const [endsAt, setEndsAt] = useState(() => Date.now() + initialCooldown * 1000);
   const [cooldown, setCooldown] = useState(initialCooldown);
   const [resending, setResending] = useState(false);
   const refs = useRef([]);
@@ -37,18 +67,25 @@ export default function OtpVerify({ email, initialCooldown = 60, mailEnabled = f
     };
   }, []);
 
+  // countdown until a new code can be requested (computed from a timestamp, so it stays exact in background tabs)
   useEffect(() => {
-    if (cooldown <= 0) return undefined;
-    const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [cooldown]);
+    const tick = () => setCooldown(Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)));
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [endsAt]);
+
+  function startCooldown(seconds) {
+    setEndsAt(Date.now() + seconds * 1000);
+    setCooldown(seconds);
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => refs.current[0]?.focus(), 950); // after the boxes landed
     return () => clearTimeout(timer);
   }, []);
 
-  // verify automatically as soon as the 4th digit is in
+  // verify automatically as soon as the last digit is in
   useEffect(() => {
     if (phase === "input" && digits.every(Boolean)) verify(digits.join(""));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -67,7 +104,7 @@ export default function OtpVerify({ email, initialCooldown = 60, mailEnabled = f
     let ok = false;
     let data = {};
     try {
-      const response = await fetch("/api/auth/verify-email", {
+      const response = await fetch(verifyUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, code }),
@@ -89,7 +126,8 @@ export default function OtpVerify({ email, initialCooldown = 60, mailEnabled = f
     } else {
       setError(data.error || "تایید انجام نشد.");
       setExpired(Boolean(data.expired));
-      setDigits(["", "", "", ""]);
+      if (data.codeExpired) startCooldown(0);
+      setDigits(emptyDigits());
       setStageKey((k) => k + 1);
       setPhase("input");
       setShake(true);
@@ -102,9 +140,9 @@ export default function OtpVerify({ email, initialCooldown = 60, mailEnabled = f
   function fill(start, text) {
     const next = [...digits];
     let i = start;
-    for (const ch of text.slice(0, 4 - start)) next[i++] = ch;
+    for (const ch of text.slice(0, length - start)) next[i++] = ch;
     setDigits(next);
-    refs.current[Math.min(i, 3)]?.focus();
+    refs.current[Math.min(i, length - 1)]?.focus();
   }
 
   function onChange(i, raw) {
@@ -126,18 +164,18 @@ export default function OtpVerify({ email, initialCooldown = 60, mailEnabled = f
         refs.current[i - 1]?.focus();
       }
     } else if (event.key === "ArrowLeft" && i > 0) refs.current[i - 1]?.focus();
-    else if (event.key === "ArrowRight" && i < 3) refs.current[i + 1]?.focus();
+    else if (event.key === "ArrowRight" && i < length - 1) refs.current[i + 1]?.focus();
   }
 
   function onPaste(event) {
     event.preventDefault();
-    const d = toDigits(event.clipboardData.getData("text")).slice(0, 4);
+    const d = toDigits(event.clipboardData.getData("text")).slice(0, length);
     if (!d) return;
-    const next = ["", "", "", ""];
+    const next = emptyDigits();
     [...d].forEach((ch, k) => (next[k] = ch));
     setError("");
     setDigits(next);
-    refs.current[Math.min(d.length, 3)]?.focus();
+    refs.current[Math.min(d.length, length - 1)]?.focus();
   }
 
   async function resend() {
@@ -146,7 +184,7 @@ export default function OtpVerify({ email, initialCooldown = 60, mailEnabled = f
     setError("");
     setInfo("");
     try {
-      const response = await fetch("/api/auth/resend-code", {
+      const response = await fetch(resendUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -154,12 +192,12 @@ export default function OtpVerify({ email, initialCooldown = 60, mailEnabled = f
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         setError(data.error || "ارسال نشد.");
-        if (data.retryAfterSec) setCooldown(data.retryAfterSec);
+        if (data.retryAfterSec) startCooldown(data.retryAfterSec);
         if (data.expired) setExpired(true);
       } else {
         setInfo("کد جدید به ایمیل شما ارسال شد.");
-        setCooldown(data.resendIn || 60);
-        setDigits(["", "", "", ""]);
+        startCooldown(data.resendIn || 600);
+        setDigits(emptyDigits());
         setTimeout(() => refs.current[0]?.focus(), 50);
       }
     } catch {
@@ -171,18 +209,18 @@ export default function OtpVerify({ email, initialCooldown = 60, mailEnabled = f
 
   const verifying = phase === "verifying";
   const success = phase === "success";
-  const stageClass = `otp-stage${verifying ? " is-orbit" : success ? " is-orbit is-merge is-success" : ""}${shake ? " otp-shake" : ""}${error ? " otp-error" : ""}`;
+  const stageClass = `otp-stage otp-len-${length}${verifying ? " is-orbit" : success ? " is-orbit is-merge is-success" : ""}${shake ? " otp-shake" : ""}${error ? " otp-error" : ""}`;
 
   return (
     <div className="otp-wrap" aria-live="polite">
-      <h1>{success ? "ایمیل شما تایید شد" : verifying ? "در حال بررسی..." : "کد تایید را وارد کنید"}</h1>
+      <h1>{success ? successCopy.title : verifying ? "در حال بررسی..." : "کد تایید را وارد کنید"}</h1>
       {success ? (
-        <p>درخواست شما برای تایید به مالک فضای کاری رسید.</p>
+        <p>{successCopy.text}</p>
       ) : verifying ? (
         <p>کد شما به‌صورت امن بررسی می‌شود.</p>
       ) : (
         <p>
-          کد ۴ رقمی به <strong dir="ltr">{email}</strong> ارسال شد.
+          کد {length.toLocaleString("fa-IR")} رقمی به <strong dir="ltr">{email}</strong> ارسال شد.
         </p>
       )}
 
@@ -195,14 +233,20 @@ export default function OtpVerify({ email, initialCooldown = 60, mailEnabled = f
               key={i}
               ref={(el) => (refs.current[i] = el)}
               className={`otp-box${d ? " filled" : ""}`}
-              style={{ "--i": i, "--sx": SCATTER[i].sx, "--sy": SCATTER[i].sy, "--sr": SCATTER[i].sr }}
+              style={{
+                "--i": i,
+                "--sx": SCATTER[i % 4].sx,
+                "--sy": SCATTER[i % 4].sy,
+                "--sr": SCATTER[i % 4].sr,
+                ...positions(i, length),
+              }}
               inputMode="numeric"
               autoComplete={i === 0 ? "one-time-code" : "off"}
               maxLength={1}
               value={d}
               readOnly={phase !== "input"}
               tabIndex={phase === "input" ? 0 : -1}
-              aria-label={`رقم ${i + 1} از ۴`}
+              aria-label={`رقم ${i + 1} از ${length.toLocaleString("fa-IR")}`}
               onChange={(e) => onChange(i, e.target.value)}
               onKeyDown={(e) => onKeyDown(i, e)}
               onPaste={onPaste}
@@ -224,12 +268,16 @@ export default function OtpVerify({ email, initialCooldown = 60, mailEnabled = f
           <div className="otp-resend">
             <span>کد را دریافت نکردید؟</span>
             <button type="button" className="otp-resend-btn" onClick={resend} disabled={cooldown > 0 || resending}>
-              {resending ? "در حال ارسال..." : cooldown > 0 ? `ارسال مجدد (${cooldown})` : "ارسال مجدد"}
+              {resending ? "در حال ارسال..." : cooldown > 0 ? `ارسال مجدد (${clock(cooldown)})` : "ارسال مجدد"}
             </button>
           </div>
-          <small className="otp-hint">پوشه‌ی Spam را هم نگاه کنید. کد ۱۰ دقیقه معتبر است.</small>
+          <small className="otp-hint">
+            {cooldown > 0
+              ? "کد ۱۰ دقیقه معتبر است و بعد از پایان این زمان می‌توانید کد جدید بگیرید. پوشه‌ی Spam را هم نگاه کنید."
+              : "مهلت کد تمام شد. روی «ارسال مجدد» بزنید تا کد جدید برایتان فرستاده شود."}
+          </small>
           <button type="button" className="auth-link auth-link-button" onClick={onBack}>
-            {expired ? "شروع دوباره" : "ویرایش ایمیل"}
+            {expired ? "شروع دوباره" : backLabel}
           </button>
         </>
       )}
@@ -237,11 +285,12 @@ export default function OtpVerify({ email, initialCooldown = 60, mailEnabled = f
       {success && (
         <div className="otp-done">
           <div className="auth-success" role="status">
-            {mailEnabled
-              ? "به‌محض اینکه مالک تایید کند، یک ایمیل اطلاع‌رسانی برایتان می‌آید (پوشه‌ی Spam را هم نگاه کنید). بعد از آن با ایمیل و رمز عبورتان وارد شوید."
-              : "بعد از تایید مالک می‌توانید با ایمیل و رمز عبورتان وارد شوید."}
+            {successCopy.note ||
+              (mailEnabled
+                ? "به‌محض اینکه مالک تایید کند، یک ایمیل اطلاع‌رسانی برایتان می‌آید (پوشه‌ی Spam را هم نگاه کنید). بعد از آن با ایمیل و رمز عبورتان وارد شوید."
+                : "بعد از تایید مالک می‌توانید با ایمیل و رمز عبورتان وارد شوید.")}
           </div>
-          <Link href="/login" className="secondary-button auth-register">رفتن به صفحه ورود</Link>
+          <Link href={successCopy.href} className="secondary-button auth-register">{successCopy.label}</Link>
         </div>
       )}
     </div>

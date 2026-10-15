@@ -1253,11 +1253,6 @@ body { padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right,
   transition: border-color .15s, box-shadow .15s, background .15s, transform .15s;
   animation: otp-settle .95s cubic-bezier(.2, .9, .25, 1) backwards; animation-delay: calc(var(--i) * 80ms);
 }
-/* row positions (step = box + gap) and orbit positions (a diamond around the centre) */
-.otp-box:nth-child(1) { --rx: calc((var(--box-w) + var(--gap)) * -1.5); --ox: 0px; --oy: calc(var(--r) * -1); }
-.otp-box:nth-child(2) { --rx: calc((var(--box-w) + var(--gap)) * -0.5); --ox: var(--r); --oy: 0px; }
-.otp-box:nth-child(3) { --rx: calc((var(--box-w) + var(--gap)) * 0.5); --ox: 0px; --oy: var(--r); }
-.otp-box:nth-child(4) { --rx: calc((var(--box-w) + var(--gap)) * 1.5); --ox: calc(var(--r) * -1); --oy: 0px; }
 .otp-box:focus { border-color: var(--accent); background: var(--surface); transform: translate(var(--rx), -3px); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent), 0 12px 22px -12px var(--accent); }
 .otp-box.filled { border-color: color-mix(in srgb, var(--accent) 70%, var(--border)); background: var(--surface); }
 .otp-error .otp-box { border-color: var(--danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 14%, transparent); }
@@ -1303,9 +1298,35 @@ body { padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right,
 @keyframes otp-draw { to { stroke-dashoffset: 0; } }
 @keyframes otp-ripple { from { transform: scale(1); opacity: .6; } to { transform: scale(2.1); opacity: 0; } }
 @keyframes otp-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-@media (max-width: 420px) { .otp-stage { --box-w: 54px; --box-h: 64px; --gap: 10px; --r: 56px; } .otp-box { font-size: 26px; } }
+.otp-len-6 { --box-w: 46px; --box-h: 58px; --gap: 10px; --r: 76px; height: 212px; }
+.otp-len-6 .otp-box { font-size: 24px; border-radius: 14px; }
+@media (max-width: 420px) {
+  .otp-stage { --box-w: 54px; --box-h: 64px; --gap: 10px; --r: 56px; }
+  .otp-box { font-size: 26px; }
+  .otp-len-6 { --box-w: 40px; --box-h: 52px; --gap: 8px; --r: 66px; }
+  .otp-len-6 .otp-box { font-size: 21px; border-radius: 12px; }
+}
 @media (prefers-reduced-motion: reduce) {
   .otp-box, .otp-group, .otp-core, .otp-orbit-ring, .otp-ripple, .otp-done { animation: none !important; }
   .is-success .otp-check { animation: none; transform: scale(1); opacity: 1; }
   .is-success .otp-check path { animation: none; stroke-dashoffset: 0; }
 }
+
+/* member removal (danger zone in the edit dialog) */
+.danger-zone { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 14px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--danger) 30%, var(--border)); background: color-mix(in srgb, var(--danger) 6%, transparent); }
+.danger-zone > div { display: grid; gap: 2px; min-width: 0; }
+.danger-zone small { color: var(--muted); font-size: 12.5px; }
+
+/* settings page */
+.settings-grid { display: grid; gap: 20px; max-width: 820px; }
+.settings-card .card-head { margin-bottom: 14px; }
+.settings-actions { display: flex; justify-content: flex-start; }
+.settings-divider { height: 1px; background: var(--border); margin: 20px 0 16px; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.settings-row > div { display: grid; gap: 2px; min-width: 0; }
+.settings-row small { color: var(--muted); font-size: 12.5px; line-height: 1.8; }
+.settings-pwa { display: grid; gap: 6px; }
+.settings-pwa .menu-item { border: 1px solid var(--border); padding: 12px 14px; }
+.settings-pwa .pwa-hint { padding: 4px 4px 6px; }
+.auth-forgot { text-align: start; margin-top: -4px; }
+@media (max-width: 640px) { .form-grid { grid-template-columns: minmax(0, 1fr); } }

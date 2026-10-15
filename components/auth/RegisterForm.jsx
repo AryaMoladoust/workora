@@ -12,7 +12,7 @@ export default function RegisterForm({ mode: initialMode, needsKey = false, init
   const router = useRouter();
   const [mode, setMode] = useState(initialMode);
   const [step, setStep] = useState("form"); // request mode: "form" → "verify" (4-digit code)
-  const [resendIn, setResendIn] = useState(60);
+  const [resendIn, setResendIn] = useState(600);
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "", workspaceName: "", registrationKey: "", inviteCode: initialCode });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -38,7 +38,7 @@ export default function RegisterForm({ mode: initialMode, needsKey = false, init
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "ثبت‌نام انجام نشد.");
       if (data.step === "verify") {
-        setResendIn(data.resendIn || 60);
+        setResendIn(data.resendIn || 600);
         setStep("verify");
         return;
       }

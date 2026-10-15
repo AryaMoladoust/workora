@@ -114,6 +114,30 @@ export default function MembersManager({ members, canManage, currentUserId, gran
     }
   }
 
+  async function removeMember() {
+    const name = `${editing.firstName} ${editing.lastName}`.trim();
+    const ok = window.confirm(
+      `«${name}» برای همیشه از فضای کاری حذف شود؟\n\n` +
+        "• از همه‌ی پروژه‌ها خارج می‌شود و دیگر نمی‌تواند وارد شود.\n" +
+        "• وظایف او بدون مسئول می‌ماند و یادداشت‌های خصوصی و گفتگوهای مستقیمش پاک می‌شود.\n" +
+        "• کامنت‌ها و پیام‌های پروژه‌ای‌اش می‌ماند و با نام «کاربر حذف‌شده» دیده می‌شود.\n\n" +
+        "این کار برگشت‌پذیر نیست. اگر فقط می‌خواهید جلوی ورودش را بگیرید، به‌جای حذف «غیرفعال» کنید."
+    );
+    if (!ok) return;
+    setBusy(true);
+    setError("");
+    try {
+      await request(`/api/members/${editing.membershipId}`, "DELETE");
+      setEditing(null);
+      setNotice(`«${name}» از فضای کاری حذف شد.`);
+      router.refresh();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function submitEdit(event) {
     event.preventDefault();
     setBusy(true);
@@ -310,6 +334,15 @@ export default function MembersManager({ members, canManage, currentUserId, gran
                   <small>اگر غیرفعال شود، کاربر دیگر نمی‌تواند وارد شود. اطلاعات و سوابقش حذف نمی‌شود.</small>
                 </span>
               </label>
+            )}
+            {!editingIsOwner && !editingIsSelf && (
+              <div className="danger-zone field-wide">
+                <div>
+                  <strong>حذف عضو</strong>
+                  <small>برای همیشه از فضای کاری حذف می‌شود. برگشت‌پذیر نیست.</small>
+                </div>
+                <button type="button" className="danger-button" onClick={removeMember} disabled={busy}>حذف عضو</button>
+              </div>
             )}
             {error && <div className="form-error field-wide">{error}</div>}
           </form>

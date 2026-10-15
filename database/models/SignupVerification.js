@@ -11,7 +11,8 @@ const signupVerificationSchema = new mongoose.Schema(
     codeHash: { type: String, required: true },
     attempts: { type: Number, default: 0 },
     lastSentAt: { type: Date, default: Date.now },
-    expiresAt: { type: Date, required: true },
+    codeExpiresAt: { type: Date, required: true }, // the 4-digit code stops working here
+    expiresAt: { type: Date, required: true }, // the whole record is deleted here (TTL)
   },
   { timestamps: true }
 );

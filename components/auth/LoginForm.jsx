@@ -49,6 +49,7 @@ export default function LoginForm() {
           رمز عبور
           <input type="password" dir="ltr" autoComplete="current-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
         </label>
+        <Link href="/forgot-password" className="auth-link auth-forgot">رمز عبور را فراموش کرده‌اید؟</Link>
         <button className="primary-button" disabled={loading}>{loading ? "در حال ورود..." : "ورود"}</button>
         <div className="auth-divider"><span>حساب ندارید؟</span></div>
         <Link href="/register" className="secondary-button auth-register">ثبت‌نام</Link>

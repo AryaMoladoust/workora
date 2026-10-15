@@ -46,6 +46,11 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Sessions issued before this moment are rejected (set on password change / "sign out everywhere").
+    passwordChangedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
