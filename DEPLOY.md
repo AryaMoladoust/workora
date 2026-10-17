@@ -47,7 +47,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
 ```
 https://<نام-پروژه>.vercel.app/api/setup?token=<SETUP_TOKEN>
 ```
-خروجی باید `"ok": true` و فهرست ۱۲ collection باشد: `users, workspaces, memberships, projects, tasks, comments, activities, notifications, conversations, chatmessages, conversationreads, ratelimits`. اگر خطا دیدید متن آن را برایم بفرستید.
+خروجی باید `"ok": true` و فهرست همه‌ی collectionهای برنامه باشد (حدود ۱۸ مورد: users, workspaces, memberships, projects, tasks, comments, activities, notifications, conversations, chatmessages, conversationreads, ratelimits, notes, announcements, pushsubscriptions, pushconfigs, signupverifications, passwordresets). اگر خطا دیدید متن آن را برایم بفرستید.
 (بعد از اتمام می‌توانید `SETUP_TOKEN` را از Vercel حذف کنید؛ آن‌وقت این آدرس غیرفعال می‌شود.)
 
 ## ۶) ساخت حساب مالک

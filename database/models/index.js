@@ -14,3 +14,5 @@ export { default as Note } from "./Note";
 export { default as Announcement } from "./Announcement";
 export { default as PushSubscription } from "./PushSubscription";
 export { default as PushConfig } from "./PushConfig";
+export { default as SignupVerification } from "./SignupVerification";
+export { default as PasswordReset } from "./PasswordReset";

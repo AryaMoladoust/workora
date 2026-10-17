@@ -58,6 +58,22 @@ export default function RealtimeProvider({ userId, initialUnread = 0, initialCha
     if (userId) refreshSummary();
   }, [userId, refreshSummary]);
 
+  // ---- presence heartbeat ("online" dot / "last seen" in chat): once a minute while the tab is visible
+  useEffect(() => {
+    if (!userId) return undefined;
+    function beat() {
+      if (document.hidden) return;
+      fetch("/api/presence", { method: "POST", keepalive: true }).catch(() => {});
+    }
+    beat();
+    const timer = setInterval(beat, 60000);
+    document.addEventListener("visibilitychange", beat);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", beat);
+    };
+  }, [userId]);
+
   // ---- socket with automatic reconnect
   useEffect(() => {
     if (!userId || POLLING_ONLY) return undefined;

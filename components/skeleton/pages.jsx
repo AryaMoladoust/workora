@@ -256,18 +256,18 @@ export function ThreadSkeleton({ embedded = false }) {
     <section className={`thread ${embedded ? "thread-embedded" : ""}`} aria-busy="true">
       <SkStatus />
       <header className="thread-head" aria-hidden="true">
-        <Sk w={42} h={42} r={14} />
-        <span className="sk-stack" style={{ gap: 7 }}><Sk w={160} h={15} d={1} /><Sk w={100} h={11} d={2} /></span>
+        <Sk w={52} h={52} circle />
+        <span className="sk-stack" style={{ gap: 7, flex: 1 }}><Sk w={160} h={15} d={1} /><Sk w={100} h={11} d={2} /></span>
       </header>
       <div className="thread-list" aria-hidden="true">
         {rows.map((r, i) => (
           <div className={`msg ${r.mine ? "is-mine" : ""}`} key={i}>
-            {!r.mine && <Sk w={28} h={28} circle d={i} />}
-            <Sk w={`${r.w}%`} h={i % 3 === 0 ? 60 : 42} r={16} d={i} />
+            {!r.mine && <Sk w={30} h={30} circle d={i} />}
+            <Sk w={`${r.w}%`} h={i % 3 === 0 ? 60 : 42} r={20} d={i} />
           </div>
         ))}
       </div>
-      <div className="composer" aria-hidden="true"><Sk w="100%" h={46} r={14} /><Sk w={46} h={46} r={14} d={1} /></div>
+      <div className="composer" aria-hidden="true"><Sk w="100%" h={54} r={26} /></div>
     </section>
   );
 }
@@ -277,14 +277,22 @@ export function ChatSkeleton() {
     <div className="chat-shell" aria-busy="true">
       <SkStatus />
       <aside className="chat-list" aria-hidden="true">
-        <div className="chat-list-head"><Sk w={90} h={20} /><Sk w={42} h={42} r={12} d={1} /></div>
-        <div style={{ padding: "8px 16px 10px" }}><Sk w="100%" h={44} r={12} d={1} /></div>
+        <div className="chat-list-top"><Sk w="100%" h={48} r={18} d={1} /><Sk w={48} h={48} r={18} d={1} /></div>
         <div className="chat-list-body">
-          {Array.from({ length: 7 }, (_, i) => (
-            <div className="conv" key={i} style={{ cursor: "default" }}>
-              <Sk w={42} h={42} r={14} d={i} />
-              <span className="sk-stack" style={{ gap: 8 }}><Sk w={`${60 - (i % 3) * 10}%`} h={14} d={i} /><Sk w={`${85 - (i % 2) * 15}%`} h={11} d={i + 1} /></span>
-            </div>
+          {[3, 4].map((count, g) => (
+            <section className="chat-card" key={g}>
+              <div style={{ padding: "2px 8px 10px" }}><Sk w={70} h={16} d={g} /></div>
+              <ul>
+                {Array.from({ length: count }, (_, i) => (
+                  <li key={i}>
+                    <div className="conv" style={{ cursor: "default" }}>
+                      <Sk w={46} h={46} circle d={i} />
+                      <span className="sk-stack" style={{ gap: 8, flex: 1 }}><Sk w={`${60 - (i % 3) * 10}%`} h={14} d={i} /><Sk w={`${85 - (i % 2) * 15}%`} h={11} d={i + 1} /></span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
         </div>
       </aside>

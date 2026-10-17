@@ -1,7 +1,20 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "../../../../../../lib/db";
 import { getCurrentUser } from "../../../../../../lib/auth";
-import { conversationAccess, MESSAGE_LIMIT, publishToParticipants, pushChatMessage, serializeMessage, serializeMessages } from "../../../../../../lib/chat";
+import {
+  conversationAccess,
+  MESSAGE_LIMIT,
+  messagesAround,
+  notifyMentions,
+  publishToParticipants,
+  pushChatMessage,
+  readsOf,
+  replySnapshot,
+  resolveMentions,
+  searchMessages,
+  serializeMessages,
+  serializeOne,
+} from "../../../../../../lib/chat";
 import ChatMessage from "../../../../../../database/models/ChatMessage";
 import Conversation from "../../../../../../database/models/Conversation";
 import ConversationRead from "../../../../../../database/models/ConversationRead";
@@ -14,7 +27,9 @@ function bad(message, status = 400) {
 
 // ?before=<ISO date>&limit=40  → older messages (oldest first in the response)
 // ?after=<ISO date>            → messages newer than a moment (used to catch up after a reconnect)
-// ?since=<ISO date>            → also returns ids of messages deleted after that moment (polling keeps deletions in sync)
+// ?since=<ISO date>            → also returns messages edited / reacted / pinned / deleted after that moment (`updated`)
+// ?around=<messageId>          → a window of messages around one message (jump to a search result or a quote)
+// ?q=text                      → search inside this conversation (newest first)
 export async function GET(request, { params }) {
   params = await params;
   const current = await getCurrentUser();
@@ -24,6 +39,18 @@ export async function GET(request, { params }) {
   if (!access) return bad("گفتگو پیدا نشد.", 404);
 
   const { searchParams } = new URL(request.url);
+  await connectToDatabase();
+
+  const q = searchParams.get("q");
+  if (q !== null) return NextResponse.json({ results: await searchMessages(access.conversation._id, q) });
+
+  const around = searchParams.get("around");
+  if (around) {
+    const window = await messagesAround(access.conversation._id, around);
+    if (!window) return bad("پیام پیدا نشد.", 404);
+    return NextResponse.json({ ...window, reads: await readsOf(access.conversation._id, current.user.id), now: new Date().toISOString() });
+  }
+
   const limit = Math.min(60, Math.max(1, Number.parseInt(searchParams.get("limit") || "40", 10) || 40));
   const before = searchParams.get("before");
   const after = searchParams.get("after");
@@ -33,26 +60,26 @@ export async function GET(request, { params }) {
   if (before && !Number.isNaN(Date.parse(before))) filter.createdAt = { $lt: new Date(before) };
   if (after && !Number.isNaN(Date.parse(after))) filter.createdAt = { $gt: new Date(after) };
 
-  await connectToDatabase();
   let rows;
   if (after) {
     rows = await ChatMessage.find(filter).sort({ createdAt: 1 }).limit(200).lean();
   } else {
-    rows = (await ChatMessage.find(filter).sort({ createdAt: -1 }).limit(limit + 1).lean());
+    rows = await ChatMessage.find(filter).sort({ createdAt: -1 }).limit(limit + 1).lean();
   }
   const hasMore = !after && rows.length > limit;
   if (!after) rows = rows.slice(0, limit).reverse();
 
-  let deleted = [];
+  let updated = [];
   if (since && !Number.isNaN(Date.parse(since))) {
-    const gone = await ChatMessage.find({ conversationId: access.conversation._id, deletedAt: { $gt: new Date(since) } })
-      .select("_id")
+    const changed = await ChatMessage.find({ conversationId: access.conversation._id, changedAt: { $gt: new Date(since) } })
+      .sort({ changedAt: 1 })
       .limit(200)
       .lean();
-    deleted = gone.map((m) => String(m._id));
+    updated = await serializeMessages(changed);
   }
 
-  return NextResponse.json({ messages: await serializeMessages(rows), hasMore, deleted, now: new Date().toISOString() });
+  const [messages, reads] = await Promise.all([serializeMessages(rows), readsOf(access.conversation._id, current.user.id)]);
+  return NextResponse.json({ messages, hasMore, updated, reads, now: new Date().toISOString() });
 }
 
 export async function POST(request, { params }) {
@@ -70,11 +97,18 @@ export async function POST(request, { params }) {
     if (text.length > MESSAGE_LIMIT) return bad(`پیام نباید بیشتر از ${MESSAGE_LIMIT} کاراکتر باشد.`);
 
     await connectToDatabase();
+    const [replyTo, mentions] = await Promise.all([
+      replySnapshot(access, body.replyToId),
+      resolveMentions(current, access, text, body.mentions),
+    ]);
+
     const message = await ChatMessage.create({
       workspaceId: current.workspace.id,
       conversationId: access.conversation._id,
       authorId: current.user.id,
       body: text,
+      ...(replyTo ? { replyTo } : {}),
+      ...(mentions.length ? { mentions } : {}),
     });
 
     await Promise.all([
@@ -90,7 +124,7 @@ export async function POST(request, { params }) {
       ),
     ]);
 
-    const serialized = serializeMessage(message.toObject(), `${current.user.firstName} ${current.user.lastName}`);
+    const serialized = await serializeOne(message.toObject());
     await publishToParticipants(current, access.participants, {
       type: "chat.message",
       conversationId: String(access.conversation._id),
@@ -99,7 +133,10 @@ export async function POST(request, { params }) {
       message: serialized,
     });
 
-    await pushChatMessage(current, access, text);
+    await Promise.all([
+      pushChatMessage(current, access, text, { skipIds: mentions }),
+      notifyMentions(current, access, mentions, text),
+    ]);
 
     return NextResponse.json({ message: serialized }, { status: 201 });
   } catch (error) {

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Icon from "../ui/Icon";
 import Modal from "../ui/Modal";
-import NameAvatar from "../ui/NameAvatar";
+import ChatAvatar from "./ChatAvatar";
 import ChatThread from "./ChatThread";
 import { useRealtime } from "../realtime/RealtimeProvider";
 
@@ -42,12 +42,11 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
     }
   }, []);
 
-  /* no live socket (polling mode / offline): refresh the list periodically */
+  /* refresh the list periodically: every 8-15 s without a live socket, every 45 s with one (online dots) */
   useEffect(() => {
-    if (status === "open") return undefined;
     const timer = setInterval(() => {
       if (!document.hidden) refreshList();
-    }, status === "polling" ? 8000 : 15000);
+    }, status === "open" ? 45000 : status === "polling" ? 8000 : 15000);
     return () => clearInterval(timer);
   }, [status, refreshList]);
 
@@ -57,6 +56,14 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
       subscribe((event) => {
         if (event.type === "reconnected" || event.type === "chat.deleted") {
           refreshList();
+          return;
+        }
+        if (event.type === "chat.updated") {
+          // an edit of the newest message changes the preview
+          const m = event.message;
+          const patch = (list) => list.map((c) => (c.id === event.conversationId && c.lastAt === m.createdAt ? { ...c, lastPreview: m.body.slice(0, 120) } : c));
+          setProjects(patch);
+          setDirects(patch);
           return;
         }
         if (event.type !== "chat.message") return;
@@ -82,7 +89,7 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
       lastPreview: message.deleted ? "" : message.body.slice(0, 120),
       lastMine: mine,
       lastAt: message.createdAt,
-      lastRelative: "همین الان",
+      lastRelative: message.timeText || "همین الان",
       unread: mine || viewing ? entry.unread : entry.unread + 1,
     };
   }
@@ -91,6 +98,12 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
     const clear = (list) => list.map((c) => (c.id === id && c.unread ? { ...c, unread: 0 } : c));
     setProjects(clear);
     setDirects(clear);
+  }, []);
+
+  const handleMuted = useCallback((id, muted) => {
+    const set = (list) => list.map((c) => (c.id === id ? { ...c, muted } : c));
+    setProjects(set);
+    setDirects(set);
   }, []);
 
   const handleSent = useCallback((message) => {
@@ -129,9 +142,7 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
     return (
       <li key={c.id}>
         <button type="button" className={`conv ${c.id === activeId ? "is-active" : ""}`} onClick={() => setActiveId(c.id)}>
-          <span className="conv-icon">
-            {c.kind === "project" ? <Icon name="folder" size={18} /> : <NameAvatar id={c.userId} name={c.title} />}
-          </span>
+          <ChatAvatar id={c.userId || c.projectId || c.id} name={c.title} kind={c.kind} online={Boolean(c.online)} />
           <span className="conv-main">
             <span className="conv-top">
               <strong>{c.title}</strong>
@@ -141,7 +152,10 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
               <span className="conv-preview">
                 {c.lastPreview ? `${c.lastMine ? "شما: " : ""}${c.lastPreview}` : "هنوز پیامی نیست"}
               </span>
-              {c.unread > 0 && <span className="conv-badge">{c.unread > 99 ? "۹۹+" : c.unread.toLocaleString("fa-IR")}</span>}
+              {c.muted && <Icon name="bellOff" size={13} className="conv-muted" aria-label="بی‌صدا" />}
+              {c.unread > 0 && (
+                <span className={`conv-badge${c.muted ? " is-muted" : ""}`}>{c.unread > 99 ? "۹۹+" : c.unread.toLocaleString("fa-IR")}</span>
+              )}
             </span>
           </span>
         </button>
@@ -152,33 +166,36 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
   return (
     <div className={`chat-shell ${active ? "has-active" : ""}`}>
       <aside className="chat-list">
-        <div className="chat-list-head">
-          <h2>گفتگوها</h2>
-          <button type="button" className="icon-button" aria-label="گفتگوی جدید" title="پیام مستقیم جدید" onClick={() => setNewOpen(true)}>
+        <div className="chat-list-top">
+          <div className="search-field chat-search">
+            <Icon name="search" size={18} />
+            <input type="search" placeholder="جستجو در گفتگوها..." value={query} onChange={(e) => setQuery(e.target.value)} />
+          </div>
+          <button type="button" className="chat-new" aria-label="گفتگوی جدید" title="پیام مستقیم جدید" onClick={() => setNewOpen(true)}>
             <Icon name="plus" size={18} />
           </button>
         </div>
-        <div className="search-field chat-search">
-          <Icon name="search" size={18} />
-          <input type="search" placeholder="جستجو..." value={query} onChange={(e) => setQuery(e.target.value)} />
-        </div>
 
         <div className="chat-list-body">
-          <h3 className="conv-section">پروژه‌ها</h3>
-          {shownProjects.length ? (
-            <ul>{shownProjects.map(renderRow)}</ul>
-          ) : (
-            <p className="conv-empty">{projects.length ? "موردی پیدا نشد." : "شما عضو هیچ پروژه‌ای نیستید."}</p>
-          )}
+          <section className="chat-card">
+            <h3 className="conv-section">گروه‌ها</h3>
+            {shownProjects.length ? (
+              <ul>{shownProjects.map(renderRow)}</ul>
+            ) : (
+              <p className="conv-empty">{projects.length ? "موردی پیدا نشد." : "شما عضو هیچ پروژه‌ای نیستید."}</p>
+            )}
+          </section>
 
-          <h3 className="conv-section">پیام‌های مستقیم</h3>
-          {shownDirects.length ? (
-            <ul>{shownDirects.map(renderRow)}</ul>
-          ) : (
-            <p className="conv-empty">
-              {directs.length ? "موردی پیدا نشد." : "با دکمه + یک گفتگوی مستقیم شروع کنید."}
-            </p>
-          )}
+          <section className="chat-card">
+            <h3 className="conv-section">افراد</h3>
+            {shownDirects.length ? (
+              <ul>{shownDirects.map(renderRow)}</ul>
+            ) : (
+              <p className="conv-empty">
+                {directs.length ? "موردی پیدا نشد." : "با دکمه + یک گفتگوی مستقیم شروع کنید."}
+              </p>
+            )}
+          </section>
         </div>
       </aside>
 
@@ -191,6 +208,7 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
             onBack={() => setActiveId(null)}
             onRead={handleRead}
             onMessage={handleSent}
+            onMutedChange={handleMuted}
           />
         ) : (
           <div className="chat-placeholder">
@@ -211,7 +229,7 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
           {shownPeople.map((p) => (
             <li key={p.userId}>
               <button type="button" className="picker-row" onClick={() => startDirect(p)}>
-                <NameAvatar id={p.userId} name={`${p.firstName} ${p.lastName}`} size="sm" />
+                <ChatAvatar id={p.userId} name={`${p.firstName} ${p.lastName}`} size="sm" />
                 <span className="picker-name">{p.firstName} {p.lastName}</span>
               </button>
             </li>
