@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import AppShell from "../components/layout/AppShell";
 import PwaProvider from "../components/pwa/PwaProvider";
+import Splash from "../components/splash/Splash";
 import { getCachedCurrentUser } from "../lib/require-auth";
 import {
   THEME_COOKIE,
@@ -74,7 +75,16 @@ export default async function RootLayout({ children }) {
       className={`${iranyekan.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        {/* the splash plays once per browser session: hide it before the first paint when it already did */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: 'try{if(sessionStorage.getItem("workora_splash")==="1")document.documentElement.setAttribute("data-splash","off")}catch(e){}',
+          }}
+        />
+      </head>
       <body>
+        <Splash />
         <PwaProvider signedIn={Boolean(current?.user)}>
           <AppShell
             user={current?.user ?? null}
