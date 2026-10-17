@@ -1001,10 +1001,73 @@ function Ticks({ message, seen }) {
   );
 }
 
+const SWIPE_TRIGGER = 64; // px the finger must travel to the right to start a reply
+const SWIPE_MAX = 90;
+
 function Message({
   message, grouped, groupedNext, mine, meId, showName, seen, people, menu, toolsOn, flash,
   onToggleTools, onOpenMenu, onReact, onReply, onEdit, onPin, onCopy, onDelete, onRetry, onJump,
 }) {
+  const bubbleRef = useRef(null);
+  const swipeRef = useRef(null);
+  const swipedRef = useRef(false);
+
+  // Swipe a message to the right (touch) to reply to it. Vertical scrolling stays untouched.
+  function paint(dx, animate) {
+    const el = bubbleRef.current;
+    if (!el) return;
+    const progress = Math.min(1, dx / SWIPE_TRIGGER);
+    // own messages sit at the right edge, so they only "nudge"; the arrow still shows the progress
+    const shift = mine ? Math.min(dx, SWIPE_MAX) * 0.07 : Math.min(dx, SWIPE_MAX) * 0.8;
+    el.style.transition = animate ? "transform .22s cubic-bezier(.2,.8,.2,1)" : "none";
+    el.style.transform = dx ? `translateX(${shift}px)` : "";
+    el.style.setProperty("--sp", String(progress));
+    el.classList.toggle("is-swipe-ready", progress >= 1);
+  }
+
+  function swipeStart(e) {
+    if (e.pointerType === "mouse" || e.target.closest("button, a, textarea, input")) return;
+    swipeRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, locked: false, ready: false };
+  }
+
+  function swipeMove(e) {
+    const s = swipeRef.current;
+    if (!s || e.pointerId !== s.id) return;
+    const dx = e.clientX - s.x;
+    const dy = e.clientY - s.y;
+    if (!s.locked) {
+      if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) {
+        swipeRef.current = null; // it is a scroll, not a swipe
+        return;
+      }
+      if (dx > 10 && dx > Math.abs(dy) * 1.4) {
+        s.locked = true;
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* not supported */ }
+      } else {
+        return;
+      }
+    }
+    s.dx = Math.max(0, dx);
+    if (!s.ready && s.dx >= SWIPE_TRIGGER) {
+      s.ready = true;
+      try { navigator.vibrate?.(12); } catch { /* not supported */ }
+    } else if (s.ready && s.dx < SWIPE_TRIGGER) {
+      s.ready = false;
+    }
+    paint(s.dx, false);
+  }
+
+  function swipeEnd(e, cancelled) {
+    const s = swipeRef.current;
+    if (!s || e.pointerId !== s.id) return;
+    swipeRef.current = null;
+    if (!s.locked) return;
+    swipedRef.current = true; // the click that follows the gesture must not open the tool buttons
+    setTimeout(() => { swipedRef.current = false; }, 350);
+    paint(0, true);
+    if (!cancelled && s.dx >= SWIPE_TRIGGER) onReply(message);
+  }
+
   const cls = `msg ${mine ? "is-mine" : ""} ${grouped ? "is-grouped" : ""} ${groupedNext ? "is-grouped-next" : ""} ${flash ? "is-flash" : ""}`;
 
   if (message.deleted) {
@@ -1025,12 +1088,22 @@ function Message({
         {!mine && showName && !grouped && <small className="msg-author">{message.authorName}</small>}
         <div className="bubble-wrap">
           <div
-            className={`bubble ${message.failed ? "bubble-failed" : ""}`}
+            ref={bubbleRef}
+            className={`bubble ${message.failed ? "bubble-failed" : ""} ${settled ? "is-swipeable" : ""}`}
+            onPointerDown={settled ? swipeStart : undefined}
+            onPointerMove={settled ? swipeMove : undefined}
+            onPointerUp={settled ? (e) => swipeEnd(e, false) : undefined}
+            onPointerCancel={settled ? (e) => swipeEnd(e, true) : undefined}
             onClick={(e) => {
-              if (!settled || e.target.closest("button, a")) return;
+              if (!settled || swipedRef.current || e.target.closest("button, a")) return;
               if (window.matchMedia("(hover: none)").matches) onToggleTools();
             }}
           >
+            {settled && (
+              <span className="swipe-reply" aria-hidden="true">
+                <Icon name="reply" size={16} />
+              </span>
+            )}
             {message.replyTo && (
               <button type="button" className="quote" onClick={() => onJump(message.replyTo.id)} title="رفتن به پیام اصلی">
                 <strong>{message.replyTo.authorId === meId ? "شما" : message.replyTo.authorName}</strong>

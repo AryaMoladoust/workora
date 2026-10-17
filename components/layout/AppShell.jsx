@@ -31,6 +31,15 @@ function ShellFrame({ pathname, user, workspace, role, theme, mode, font, childr
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [menuOpen]);
 
+  // The chat page owns the whole screen: only the conversation list and the messages (no sidebar, header or bottom bar).
+  if (pathname === "/chat") {
+    return (
+      <div className="app-shell app-shell-chat">
+        <main className="chat-fullscreen">{children}</main>
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       <Sidebar

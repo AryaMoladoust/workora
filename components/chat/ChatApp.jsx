@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Icon from "../ui/Icon";
 import Modal from "../ui/Modal";
@@ -167,6 +168,9 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
     <div className={`chat-shell ${active ? "has-active" : ""}`}>
       <aside className="chat-list">
         <div className="chat-list-top">
+          <Link href="/dashboard" className="chat-new chat-home" aria-label="بازگشت به برنامه" title="بازگشت به داشبورد">
+            <Icon name="dashboard" size={18} />
+          </Link>
           <div className="search-field chat-search">
             <Icon name="search" size={18} />
             <input type="search" placeholder="جستجو در گفتگوها..." value={query} onChange={(e) => setQuery(e.target.value)} />

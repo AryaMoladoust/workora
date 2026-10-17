@@ -277,7 +277,7 @@ export function ChatSkeleton() {
     <div className="chat-shell" aria-busy="true">
       <SkStatus />
       <aside className="chat-list" aria-hidden="true">
-        <div className="chat-list-top"><Sk w="100%" h={48} r={18} d={1} /><Sk w={48} h={48} r={18} d={1} /></div>
+        <div className="chat-list-top"><Sk w={48} h={48} r={18} d={1} /><Sk w="100%" h={48} r={18} d={1} /><Sk w={48} h={48} r={18} d={1} /></div>
         <div className="chat-list-body">
           {[3, 4].map((count, g) => (
             <section className="chat-card" key={g}>

@@ -1561,3 +1561,29 @@ html[data-splash="off"] .splash { display: none !important; }
   .wl-pen { stroke-dashoffset: 0; }
   .wl-head { transform: none; }
 }
+
+/* =====================================================================
+   Chat page = the whole screen (no sidebar / header / bottom bar) + swipe to reply
+   ===================================================================== */
+.app-shell-chat { display: block; min-height: 100vh; min-height: 100dvh; }
+.chat-fullscreen { height: 100vh; height: 100dvh; min-height: 0; }
+.app-shell-chat .chat-shell {
+  height: 100vh; height: 100dvh; min-height: 0; max-width: none;
+  border: 0; border-radius: 0; box-shadow: none;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+.chat-home { text-decoration: none; }
+@media (max-width: 960px) {
+  .app-shell-chat .chat-shell { padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
+  .app-shell-chat .chat-shell.has-active { padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left)); }
+}
+
+.thread-list { overflow-x: hidden; }
+.bubble.is-swipeable { touch-action: pan-y; }
+.swipe-reply {
+  position: absolute; left: -42px; top: 50%; width: 30px; height: 30px; margin-top: -15px;
+  display: grid; place-items: center; border-radius: 50%; pointer-events: none;
+  background: var(--accent-soft-2); color: var(--accent);
+  opacity: calc(var(--sp, 0)); transform: scale(calc(.5 + var(--sp, 0) * .5));
+}
+.bubble.is-swipe-ready .swipe-reply { background: var(--accent); color: var(--on-accent); }
