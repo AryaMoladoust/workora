@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import OtpVerify from "./OtpVerify";
+import PenLoader from "../loading/PenLoader";
 
 const SUCCESS = {
   title: "رمز عبور تغییر کرد",
@@ -94,6 +95,7 @@ export default function ForgotPasswordForm() {
         <button className="primary-button" disabled={loading}>{loading ? "در حال ارسال..." : "ارسال کد تایید"}</button>
         <Link href="/login" className="auth-link">بازگشت به ورود</Link>
       </form>
+      {loading && <PenLoader blocking delay={0.05} />}
     </main>
   );
 }

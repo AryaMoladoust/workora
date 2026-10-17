@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import PenLoader from "../loading/PenLoader";
 import Link from "next/link";
 
 // where each box flies in from on the intro animation
@@ -213,6 +214,7 @@ export default function OtpVerify({
 
   return (
     <div className="otp-wrap" aria-live="polite">
+      {resending && <PenLoader blocking delay={0.05} />}
       <h1>{success ? successCopy.title : verifying ? "در حال بررسی..." : "کد تایید را وارد کنید"}</h1>
       {success ? (
         <p>{successCopy.text}</p>

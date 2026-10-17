@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import OtpVerify from "./OtpVerify";
+import PenLoader from "../loading/PenLoader";
 
 // mode "owner": first registration, creates the workspace.
 // mode "join": team member with an invite code (instant access).
@@ -40,13 +41,13 @@ export default function RegisterForm({ mode: initialMode, needsKey = false, init
       if (data.step === "verify") {
         setResendIn(data.resendIn || 600);
         setStep("verify");
+        setLoading(false);
         return;
       }
-      router.replace("/dashboard");
+      router.replace("/dashboard"); // the loader stays until the dashboard replaces this page
       router.refresh();
     } catch (e) {
       setError(e.message);
-    } finally {
       setLoading(false);
     }
   }
@@ -121,6 +122,7 @@ export default function RegisterForm({ mode: initialMode, needsKey = false, init
         )}
         <Link href="/login" className="auth-link">قبلاً حساب ساخته‌اید؟ ورود</Link>
       </form>
+      {loading && <PenLoader blocking delay={0.05} />}
     </main>
   );
 }

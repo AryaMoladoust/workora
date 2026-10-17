@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import PenLoader from "../loading/PenLoader";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -26,8 +27,7 @@ export default function LoginForm() {
       router.refresh();
     } catch (e) {
       setError(e.message);
-    } finally {
-      setLoading(false);
+      setLoading(false); // on success the loader stays until the dashboard replaces this page
     }
   }
 
@@ -55,6 +55,7 @@ export default function LoginForm() {
         <Link href="/register" className="secondary-button auth-register">ثبت‌نام</Link>
         <small className="auth-note">بعد از ثبت‌نام باید مالک فضای کاری درخواستتان را تایید کند (یا با کد دعوت مستقیم وارد شوید).</small>
       </form>
+      {loading && <PenLoader blocking delay={0.05} />}
     </main>
   );
 }
