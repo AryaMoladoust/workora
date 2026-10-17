@@ -1,5 +1,11 @@
 import { ProjectActivitySkeleton } from "../../../../components/skeleton/pages";
+import PenLoader from "../../../../components/loading/PenLoader";
 
 export default function Loading() {
-  return <ProjectActivitySkeleton />;
+  return (
+    <>
+      <PenLoader />
+      <ProjectActivitySkeleton />
+    </>
+  );
 }

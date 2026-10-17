@@ -1,5 +1,11 @@
 import { NotificationsSkeleton } from "../../components/skeleton/pages";
+import PenLoader from "../../components/loading/PenLoader";
 
 export default function Loading() {
-  return <NotificationsSkeleton />;
+  return (
+    <>
+      <PenLoader />
+      <NotificationsSkeleton />
+    </>
+  );
 }
