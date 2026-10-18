@@ -55,6 +55,7 @@ export default async function RootLayout({ children }) {
   const theme = normalizeTheme(store.get(THEME_COOKIE)?.value);
   const mode = normalizeMode(store.get(MODE_COOKIE)?.value);
   const font = normalizeFont(store.get(FONT_COOKIE)?.value);
+  const sidebarCollapsed = store.get("workora_sidebar")?.value === "1";
 
   // Only the signed-in user is needed to draw the shell. Unread counters are fetched by the client
   // right after the first paint (see RealtimeProvider) so they never block the page.
@@ -93,6 +94,7 @@ export default async function RootLayout({ children }) {
             theme={theme}
             mode={mode}
             font={font}
+            sidebarCollapsed={sidebarCollapsed}
           >
             {children}
           </AppShell>

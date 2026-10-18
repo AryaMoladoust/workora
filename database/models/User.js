@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { emailKey } from "../../lib/email-key";
 
 const userSchema = new mongoose.Schema(
   {
@@ -20,6 +21,15 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       maxlength: 160,
+    },
+    // canonical form of the mailbox (dots / "+tag" removed for Gmail …): one mailbox can own only ONE account.
+    // Filled automatically from `email`; older accounts get it from /api/setup or at their next login.
+    emailKey: {
+      type: String,
+      lowercase: true,
+      trim: true,
+      maxlength: 160,
+      default: undefined,
     },
     passwordHash: {
       type: String,
@@ -64,5 +74,10 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ emailKey: 1 }, { unique: true, partialFilterExpression: { emailKey: { $type: "string" } } });
+
+userSchema.pre("validate", function setEmailKey() {
+  if (this.email && (this.isModified("email") || !this.emailKey)) this.emailKey = emailKey(this.email);
+});
 
 export default mongoose.models.User || mongoose.model("User", userSchema);

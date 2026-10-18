@@ -14,9 +14,24 @@ function isAuthPath(pathname) {
   return AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
-function ShellFrame({ pathname, user, workspace, role, theme, mode, font, children }) {
+const SIDEBAR_COOKIE = "workora_sidebar";
+
+function ShellFrame({ pathname, user, workspace, role, theme, mode, font, sidebarCollapsed, children }) {
   const { unread, setUnread, chatUnread } = useRealtime();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(Boolean(sidebarCollapsed));
+
+  function toggleCollapsed() {
+    setCollapsed((value) => {
+      const next = !value;
+      try {
+        document.cookie = `${SIDEBAR_COOKIE}=${next ? "1" : "0"}; path=/; max-age=31536000; samesite=lax`;
+      } catch {
+        /* cookies blocked: the state just is not remembered */
+      }
+      return next;
+    });
+  }
 
   useEffect(() => {
     setMenuOpen(false);
@@ -41,7 +56,7 @@ function ShellFrame({ pathname, user, workspace, role, theme, mode, font, childr
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${collapsed ? " is-sidebar-collapsed" : ""}`}>
       <Sidebar
         pathname={pathname}
         open={menuOpen}
@@ -50,6 +65,8 @@ function ShellFrame({ pathname, user, workspace, role, theme, mode, font, childr
         role={role}
         unread={unread}
         chatUnread={chatUnread}
+        collapsed={collapsed}
+        onToggleCollapse={toggleCollapsed}
       />
       <div className={`sidebar-overlay ${menuOpen ? "is-visible" : ""}`} onClick={() => setMenuOpen(false)} aria-hidden="true" />
       <div className="app-main">
@@ -79,7 +96,7 @@ function ShellFrame({ pathname, user, workspace, role, theme, mode, font, childr
   );
 }
 
-export default function AppShell({ user, workspace, role, theme, mode, font, unread = 0, chatUnread = 0, children }) {
+export default function AppShell({ user, workspace, role, theme, mode, font, sidebarCollapsed = false, unread = 0, chatUnread = 0, children }) {
   const pathname = usePathname();
 
   // Login / register pages: no shell, only a floating theme switcher.
@@ -99,7 +116,7 @@ export default function AppShell({ user, workspace, role, theme, mode, font, unr
 
   return (
     <RealtimeProvider userId={user.id} initialUnread={unread} initialChatUnread={chatUnread}>
-      <ShellFrame pathname={pathname} user={user} workspace={workspace} role={role} theme={theme} mode={mode} font={font}>
+      <ShellFrame pathname={pathname} user={user} workspace={workspace} role={role} theme={theme} mode={mode} font={font} sidebarCollapsed={sidebarCollapsed}>
         {children}
       </ShellFrame>
     </RealtimeProvider>

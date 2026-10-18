@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 const signupVerificationSchema = new mongoose.Schema(
   {
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    emailKey: { type: String, lowercase: true, trim: true, default: undefined }, // one pending record per mailbox (see lib/email-key.js)
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
     passwordHash: { type: String, required: true },
@@ -18,5 +19,6 @@ const signupVerificationSchema = new mongoose.Schema(
 );
 
 signupVerificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+signupVerificationSchema.index({ emailKey: 1 }, { unique: true, partialFilterExpression: { emailKey: { $type: "string" } } });
 
 export default mongoose.models.SignupVerification || mongoose.model("SignupVerification", signupVerificationSchema);

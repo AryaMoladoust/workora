@@ -100,3 +100,6 @@ Atlas → منوی چپ **Database → Data Explorer** (یا Clusters → Browse
    - `APP_URL` = آدرس سایت، مثل `https://your-project.vercel.app`
    - (اختیاری) `MAIL_FROM` = `Workora <آدرس-شما@gmail.com>`
 3. یک‌بار Redeploy کنید. بدون این متغیرها ایمیلی ارسال نمی‌شود و فقط خود تایید انجام می‌شود.
+
+## بعد از دیپلوی این نسخه
+`/api/setup?token=TOKEN` را یک‌بار باز کنید تا ایندکس یکتای `emailKey` ساخته و ایمیل‌های قدیمی پر شود. اگر `emailKeys.duplicates` خالی نبود، حساب‌های تکراری را دستی ادغام کنید.

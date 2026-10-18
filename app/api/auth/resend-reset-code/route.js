@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "../../../../lib/db";
 import { clientIp, hit } from "../../../../lib/rate-limit";
-import { normalizeEmail } from "../../../../lib/validation";
+import { emailKey, normalizeEmail } from "../../../../lib/validation";
 import { describeServerError } from "../../../../lib/errors";
 import { OTP_MAX_SENDS_PER_HOUR, OTP_RESEND_SECONDS, RESET_CODE_LENGTH, deliverCode, generateCode, hashCode, otpExpiry, recordExpiry } from "../../../../lib/otp";
 import User from "../../../../database/models/User";
@@ -22,7 +22,7 @@ export async function POST(request) {
     if (!email) return NextResponse.json({ error: "ایمیل نامعتبر است." }, { status: 400 });
 
     await connectToDatabase();
-    const record = await PasswordReset.findOne({ email, expiresAt: { $gt: new Date() } });
+    const record = await PasswordReset.findOne({ emailKey: emailKey(email), expiresAt: { $gt: new Date() } });
     if (!record) {
       return NextResponse.json({ error: "درخواستی پیدا نشد. بازیابی رمز را از اول شروع کنید.", expired: true }, { status: 400 });
     }
@@ -34,7 +34,7 @@ export async function POST(request) {
       return NextResponse.json({ error: `بعد از ${clock} دقیقه می‌توانید کد جدید بگیرید.`, retryAfterSec: wait }, { status: 429 });
     }
 
-    const perEmail = await hit(`reset-otp:email:${email}`, { max: OTP_MAX_SENDS_PER_HOUR, windowSec: 3600 });
+    const perEmail = await hit(`reset-otp:email:${emailKey(email)}`, { max: OTP_MAX_SENDS_PER_HOUR, windowSec: 3600 });
     if (perEmail.limited) {
       return NextResponse.json({ error: "برای این ایمیل بیش از حد کد فرستاده شده است. بعداً دوباره تلاش کنید." }, { status: 429 });
     }
@@ -43,11 +43,11 @@ export async function POST(request) {
     const code = generateCode(RESET_CODE_LENGTH);
     await PasswordReset.updateOne(
       { _id: record._id },
-      { $set: { codeHash: hashCode(email, code, "reset"), attempts: 0, lastSentAt: new Date(), codeExpiresAt: otpExpiry(), expiresAt: recordExpiry() } }
+      { $set: { codeHash: hashCode(record.email, code, "reset"), attempts: 0, lastSentAt: new Date(), codeExpiresAt: otpExpiry(), expiresAt: recordExpiry() } }
     );
 
     try {
-      await deliverCode({ email, name: user?.firstName || "", code, kind: "reset" });
+      await deliverCode({ email: record.email, name: user?.firstName || "", code, kind: "reset" });
     } catch (mailError) {
       console.error("RESET_RESEND_ERROR", mailError);
       return NextResponse.json({ error: "ارسال ایمیل ناموفق بود. چند لحظه بعد دوباره تلاش کنید." }, { status: 502 });

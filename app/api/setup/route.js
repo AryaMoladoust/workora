@@ -3,10 +3,31 @@ import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "../../../lib/db";
 import { sanitize } from "../../../lib/errors";
+import { emailKey } from "../../../lib/email-key";
 import * as models from "../../../database/models";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// Older accounts have no mailbox key yet. Give each one its key (oldest account wins); accounts whose mailbox is
+// already owned by another account are reported so the owner can remove the extra ones from the Members page.
+async function backfillEmailKeys(User) {
+  const taken = new Set((await User.find({ emailKey: { $type: "string" } }).select("emailKey").lean()).map((u) => u.emailKey));
+  const legacy = await User.find({ $or: [{ emailKey: { $exists: false } }, { emailKey: null }] }).select("email").sort({ createdAt: 1 }).lean();
+  let updated = 0;
+  const duplicates = [];
+  for (const user of legacy) {
+    const key = emailKey(user.email);
+    if (taken.has(key)) {
+      duplicates.push(user.email);
+      continue;
+    }
+    taken.add(key);
+    await User.updateOne({ _id: user._id }, { $set: { emailKey: key } });
+    updated += 1;
+  }
+  return { updated, duplicates };
+}
 
 function tokenOk(provided) {
   const expected = process.env.SETUP_TOKEN;
@@ -39,6 +60,7 @@ export async function GET(request) {
   try {
     await connectToDatabase();
     const report = [];
+    const emailKeys = await backfillEmailKeys(models.User); // must run before the unique emailKey index is built
 
     for (const [name, Model] of Object.entries(models)) {
       const entry = { model: name, collection: Model.collection.name };
@@ -60,6 +82,7 @@ export async function GET(request) {
       ok: report.every((r) => r.ok) && env.AUTH_SECRET_ok,
       env,
       database: mongoose.connection.name,
+      emailKeys,
       collections: report,
     });
   } catch (error) {

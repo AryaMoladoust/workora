@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { connectToDatabase } from "../../../../lib/db";
 import { createSession } from "../../../../lib/auth";
-import { isValidEmail, normalizeEmail, validateName, validatePassword } from "../../../../lib/validation";
+import { emailKey, emailMatch, isValidEmail, normalizeEmail, validateName, validatePassword } from "../../../../lib/validation";
 import { clientIp, hit } from "../../../../lib/rate-limit";
 import { registrationKeyValid, registrationOpen } from "../../../../lib/registration";
 import { describeServerError } from "../../../../lib/errors";
@@ -64,7 +64,7 @@ async function joinWithInviteCode(request, body) {
       return NextResponse.json({ error: "کد دعوت نامعتبر یا غیرفعال است. از مالک فضای کاری کد درست را بگیرید." }, { status: 403 });
     }
 
-    if (await User.exists({ email })) {
+    if (await User.exists(emailMatch(email))) {
       return NextResponse.json({ error: "ثبت‌نام با این ایمیل امکان‌پذیر نیست. اگر قبلاً حساب دارید وارد شوید." }, { status: 409 });
     }
 
@@ -135,7 +135,7 @@ async function requestAccess(request, body) {
       return NextResponse.json({ error: "ثبت‌نام با درخواست فعلاً بسته است. با مالک فضای کاری تماس بگیرید." }, { status: 403 });
     }
 
-    if (await User.exists({ email })) {
+    if (await User.exists(emailMatch(email))) {
       return NextResponse.json(
         { error: "با این ایمیل نمی‌توان درخواست داد. اگر قبلاً درخواست داده‌اید منتظر تایید مالک بمانید، و اگر حساب دارید وارد شوید." },
         { status: 409 }
@@ -143,7 +143,7 @@ async function requestAccess(request, body) {
     }
 
     // protects the mailbox of the address owner from being flooded with codes
-    const perEmail = await hit(`signup-otp:email:${email}`, { max: OTP_MAX_SENDS_PER_HOUR, windowSec: 3600 });
+    const perEmail = await hit(`signup-otp:email:${emailKey(email)}`, { max: OTP_MAX_SENDS_PER_HOUR, windowSec: 3600 });
     if (perEmail.limited) {
       return NextResponse.json({ error: "برای این ایمیل بیش از حد کد فرستاده شده است. بعداً دوباره تلاش کنید." }, { status: 429 });
     }
@@ -151,15 +151,15 @@ async function requestAccess(request, body) {
     const code = generateCode();
     const passwordHash = await bcrypt.hash(password, 12);
     await SignupVerification.findOneAndUpdate(
-      { email },
-      { $set: { firstName, lastName, passwordHash, codeHash: hashCode(email, code), attempts: 0, lastSentAt: new Date(), codeExpiresAt: otpExpiry(), expiresAt: recordExpiry() } },
+      { emailKey: emailKey(email) },
+      { $set: { email, emailKey: emailKey(email), firstName, lastName, passwordHash, codeHash: hashCode(email, code), attempts: 0, lastSentAt: new Date(), codeExpiresAt: otpExpiry(), expiresAt: recordExpiry() } },
       { upsert: true, new: true }
     );
 
     try {
       await deliverCode({ email, name: firstName, code });
     } catch (mailError) {
-      await SignupVerification.deleteOne({ email }).catch(() => {});
+      await SignupVerification.deleteOne({ emailKey: emailKey(email) }).catch(() => {});
       if (mailError?.code === "MAIL_NOT_CONFIGURED") {
         console.error("OTP_MAIL_NOT_CONFIGURED: set SMTP_USER and SMTP_PASS");
         return NextResponse.json({ error: "ارسال ایمیل روی سرور تنظیم نشده است. با مالک تماس بگیرید." }, { status: 503 });
@@ -229,7 +229,7 @@ export async function POST(request) {
 
     await connectToDatabase();
 
-    const existing = await User.exists({ email });
+    const existing = await User.exists(emailMatch(email));
     if (existing) {
       return NextResponse.json(
         { error: "ثبت‌نام با این ایمیل امکان‌پذیر نیست." },

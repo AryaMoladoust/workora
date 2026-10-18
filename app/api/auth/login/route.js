@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { connectToDatabase } from "../../../../lib/db";
 import { createSession } from "../../../../lib/auth";
-import { isValidEmail, normalizeEmail } from "../../../../lib/validation";
+import { emailKey, emailMatch, isValidEmail, normalizeEmail } from "../../../../lib/validation";
 import { clearHits, clientIp, hit } from "../../../../lib/rate-limit";
 import { describeServerError } from "../../../../lib/errors";
 import User from "../../../../database/models/User";
@@ -45,7 +45,7 @@ export async function POST(request) {
     ]);
     if (byIp.limited || byAccount.limited) return tooMany(Math.max(byIp.retryAfterSec, byAccount.retryAfterSec));
 
-    const user = await User.findOne({ email }).select("+passwordHash");
+    const user = await User.findOne(emailMatch(email)).select("+passwordHash");
     if (!user || !user.isActive) {
       await bcrypt.compare(password, await getDummyHash());
       return NextResponse.json(
@@ -75,6 +75,9 @@ export async function POST(request) {
         { status: 403 }
       );
     }
+
+    // older accounts get their mailbox key now (one mailbox = one account)
+    if (!user.emailKey) await User.updateOne({ _id: user._id, emailKey: { $exists: false } }, { $set: { emailKey: emailKey(user.email) } }).catch(() => {});
 
     await clearHits(accountKey);
     await User.updateOne(

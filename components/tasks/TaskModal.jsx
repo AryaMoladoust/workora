@@ -5,6 +5,7 @@ import Modal from "../ui/Modal";
 import Comments from "./Comments";
 import { PRIORITY_LABELS, STATUS_LABELS } from "../../lib/format";
 import { canDeleteTask, canEditTask } from "../../lib/task-rules";
+import JalaliDateInput from "../ui/JalaliDateInput";
 
 // mode "create": new task. mode "edit": detail view (editable when the user is allowed to).
 export default function TaskModal({ mode, task, presetStatus, projects, people, fixedProjectId, ctx, onClose, onSaved, onDeleted, onCommentDelta }) {
@@ -162,11 +163,11 @@ export default function TaskModal({ mode, task, presetStatus, projects, people, 
         <div className="form-grid-inner">
           <label>
             شروع
-            <input type="date" dir="ltr" value={form.startAt} onChange={(e) => setForm({ ...form, startAt: e.target.value })} disabled={!editable} />
+            <JalaliDateInput value={form.startAt} onChange={(v) => setForm({ ...form, startAt: v })} disabled={!editable} />
           </label>
           <label>
             مهلت
-            <input type="date" dir="ltr" value={form.dueAt} min={form.startAt || undefined} onChange={(e) => setForm({ ...form, dueAt: e.target.value })} disabled={!editable} />
+            <JalaliDateInput value={form.dueAt} min={form.startAt || undefined} onChange={(v) => setForm({ ...form, dueAt: v })} disabled={!editable} />
           </label>
         </div>
 

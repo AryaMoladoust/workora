@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "../../../../lib/db";
 import { clientIp, hit } from "../../../../lib/rate-limit";
-import { normalizeEmail } from "../../../../lib/validation";
+import { emailKey, normalizeEmail } from "../../../../lib/validation";
 import { describeServerError } from "../../../../lib/errors";
 import { OTP_MAX_ATTEMPTS, RESET_CODE_LENGTH, codeMatches, normalizeCode } from "../../../../lib/otp";
 import User from "../../../../database/models/User";
@@ -30,12 +30,12 @@ export async function POST(request) {
 
     // count the attempt atomically BEFORE comparing, so parallel guesses cannot exceed the limit
     const record = await PasswordReset.findOneAndUpdate(
-      { email, codeExpiresAt: { $gt: new Date() }, attempts: { $lt: OTP_MAX_ATTEMPTS } },
+      { emailKey: emailKey(email), codeExpiresAt: { $gt: new Date() }, attempts: { $lt: OTP_MAX_ATTEMPTS } },
       { $inc: { attempts: 1 } },
       { new: true }
     );
     if (!record) {
-      const existing = await PasswordReset.findOne({ email, expiresAt: { $gt: new Date() } }).lean();
+      const existing = await PasswordReset.findOne({ emailKey: emailKey(email), expiresAt: { $gt: new Date() } }).lean();
       if (existing && existing.attempts >= OTP_MAX_ATTEMPTS) {
         await PasswordReset.deleteOne({ _id: existing._id });
         return NextResponse.json({ error: "تعداد تلاش‌ها تمام شد. دوباره بازیابی رمز را شروع کنید.", expired: true }, { status: 400 });
@@ -46,7 +46,7 @@ export async function POST(request) {
       return NextResponse.json({ error: EXPIRED, expired: true }, { status: 400 });
     }
 
-    if (!codeMatches(email, code, record.codeHash, "reset")) {
+    if (!codeMatches(record.email, code, record.codeHash, "reset")) {
       const left = OTP_MAX_ATTEMPTS - record.attempts;
       if (left <= 0) {
         await PasswordReset.deleteOne({ _id: record._id });

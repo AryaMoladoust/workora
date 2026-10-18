@@ -89,6 +89,7 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
   const [searching, setSearching] = useState(false);
 
   const listRef = useRef(null);
+  const innerRef = useRef(null);
   const inputRef = useRef(null);
   const atBottomRef = useRef(true);
   const forceScrollRef = useRef(false);
@@ -318,11 +319,14 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
       return;
     }
     const last = messages[messages.length - 1];
-    const changed = lastIdRef.current !== (last?.id ?? null);
-    lastIdRef.current = last?.id ?? null;
-    if (forceScrollRef.current || atBottomRef.current || (changed && last?.authorId === me.id)) {
+    // nothing to show yet: keep the "jump to the newest message, instantly" flags for the first real batch
+    if (!last) return;
+    const changed = lastIdRef.current !== last.id;
+    lastIdRef.current = last.id;
+    if (forceScrollRef.current || atBottomRef.current || (changed && last.authorId === me.id)) {
       if (!detachedRef.current || forceScrollRef.current) {
-        el.scrollTo({ top: el.scrollHeight, behavior: instantRef.current ? "auto" : "smooth" });
+        el.scrollTo({ top: el.scrollHeight, behavior: instantRef.current ? "instant" : "smooth" });
+        atBottomRef.current = true;
         instantRef.current = false;
         forceScrollRef.current = false;
         setNewBelow(false);
@@ -331,6 +335,18 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
       setNewBelow(true);
     }
   }, [messages, me.id]);
+
+  // content height can still change after the first paint (font loading, reactions, quotes): stay on the newest message
+  useEffect(() => {
+    const el = listRef.current;
+    const inner = innerRef.current;
+    if (!el || !inner || typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver(() => {
+      if (atBottomRef.current && !detachedRef.current && !jumpRef.current) el.scrollTop = el.scrollHeight;
+    });
+    observer.observe(inner);
+    return () => observer.disconnect();
+  }, []);
 
   function onScroll() {
     const el = listRef.current;
@@ -838,6 +854,7 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
       )}
 
       <div className="thread-list" ref={listRef} onScroll={onScroll}>
+        <div className="thread-inner" ref={innerRef}>
         {loading ? (
           <p className="thread-note">در حال دریافت پیام‌ها...</p>
         ) : (
@@ -886,6 +903,7 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
             )}
           </>
         )}
+        </div>
         {(newBelow || detached) && (
           <button
             type="button"

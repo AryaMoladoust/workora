@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 const passwordResetSchema = new mongoose.Schema(
   {
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    emailKey: { type: String, lowercase: true, trim: true, default: undefined }, // one pending record per mailbox (see lib/email-key.js)
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     passwordHash: { type: String, required: true },
     codeHash: { type: String, required: true },
@@ -17,5 +18,6 @@ const passwordResetSchema = new mongoose.Schema(
 );
 
 passwordResetSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+passwordResetSchema.index({ emailKey: 1 }, { unique: true, partialFilterExpression: { emailKey: { $type: "string" } } });
 
 export default mongoose.models.PasswordReset || mongoose.model("PasswordReset", passwordResetSchema);

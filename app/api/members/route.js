@@ -5,7 +5,7 @@ import { getCurrentUser } from "../../../lib/auth";
 import { hasPermission, isOwner, sanitizePermissions } from "../../../lib/permissions";
 import { listWorkspaceMembers, serializeMember } from "../../../lib/members";
 import { logActivity } from "../../../lib/activity";
-import { isValidEmail, normalizeEmail, validateName, validatePassword } from "../../../lib/validation";
+import { emailMatch, isValidEmail, normalizeEmail, validateName, validatePassword } from "../../../lib/validation";
 import User from "../../../database/models/User";
 import Membership from "../../../database/models/Membership";
 
@@ -51,7 +51,7 @@ export async function POST(request) {
     if (!isOwner(current)) permissions = permissions.filter((p) => hasPermission(current, p));
 
     await connectToDatabase();
-    if (await User.exists({ email })) {
+    if (await User.exists(emailMatch(email))) {
       return NextResponse.json({ error: "کاربری با این ایمیل قبلاً ثبت شده است." }, { status: 409 });
     }
 

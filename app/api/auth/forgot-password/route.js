@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { connectToDatabase } from "../../../../lib/db";
 import { clientIp, hit } from "../../../../lib/rate-limit";
-import { isValidEmail, normalizeEmail, validatePassword } from "../../../../lib/validation";
+import { emailKey, emailMatch, isValidEmail, normalizeEmail, validatePassword } from "../../../../lib/validation";
 import { describeServerError } from "../../../../lib/errors";
 import { mailConfigured } from "../../../../lib/mail";
 import { OTP_MAX_SENDS_PER_HOUR, OTP_RESEND_SECONDS, RESET_CODE_LENGTH, deliverCode, generateCode, hashCode, otpExpiry, recordExpiry } from "../../../../lib/otp";
@@ -37,7 +37,7 @@ export async function POST(request) {
     }
 
     await connectToDatabase();
-    const perEmail = await hit(`reset-otp:email:${email}`, { max: OTP_MAX_SENDS_PER_HOUR, windowSec: 3600 });
+    const perEmail = await hit(`reset-otp:email:${emailKey(email)}`, { max: OTP_MAX_SENDS_PER_HOUR, windowSec: 3600 });
     if (perEmail.limited) {
       return NextResponse.json({ error: "برای این ایمیل بیش از حد کد فرستاده شده است. بعداً دوباره تلاش کنید." }, { status: 429 });
     }
@@ -45,20 +45,22 @@ export async function POST(request) {
     // always hash, so the response time does not reveal whether the account exists
     const passwordHash = await bcrypt.hash(password, 12);
 
-    const user = await User.findOne({ email, isActive: true }).select("_id firstName").lean();
+    const user = await User.findOne({ ...emailMatch(email), isActive: true }).select("_id firstName email").lean();
     const eligible = user ? Boolean(await Membership.exists({ userId: user._id, isActive: true, status: { $ne: "pending" } })) : false;
 
     if (eligible) {
       const code = generateCode(RESET_CODE_LENGTH);
+      // the code always goes to the address stored on the account (the owner of the mailbox)
+      const target = user.email;
       await PasswordReset.findOneAndUpdate(
-        { email },
-        { $set: { userId: user._id, passwordHash, codeHash: hashCode(email, code, "reset"), attempts: 0, lastSentAt: new Date(), codeExpiresAt: otpExpiry(), expiresAt: recordExpiry() } },
+        { emailKey: emailKey(target) },
+        { $set: { email: target, emailKey: emailKey(target), userId: user._id, passwordHash, codeHash: hashCode(target, code, "reset"), attempts: 0, lastSentAt: new Date(), codeExpiresAt: otpExpiry(), expiresAt: recordExpiry() } },
         { upsert: true, new: true }
       );
       try {
-        await deliverCode({ email, name: user.firstName, code, kind: "reset" });
+        await deliverCode({ email: target, name: user.firstName, code, kind: "reset" });
       } catch (mailError) {
-        await PasswordReset.deleteOne({ email }).catch(() => {});
+        await PasswordReset.deleteOne({ emailKey: emailKey(target) }).catch(() => {});
         console.error("RESET_MAIL_ERROR", mailError);
         return NextResponse.json({ error: "ارسال ایمیل ناموفق بود. چند لحظه بعد دوباره تلاش کنید." }, { status: 502 });
       }

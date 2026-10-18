@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import MemberPicker from "../ui/MemberPicker";
 import { PROJECT_STATUS_LABELS } from "../../lib/format";
+import JalaliDateInput from "../ui/JalaliDateInput";
 
 export default function ProjectForm({ mode, projectId, initial, members, currentUserId }) {
   const router = useRouter();
@@ -80,11 +81,11 @@ export default function ProjectForm({ mode, projectId, initial, members, current
 
       <label>
         تاریخ شروع
-        <input type="date" dir="ltr" value={form.startAt} onChange={(e) => setForm({ ...form, startAt: e.target.value })} />
+        <JalaliDateInput value={form.startAt} onChange={(v) => setForm({ ...form, startAt: v })} />
       </label>
       <label>
         مهلت پروژه
-        <input type="date" dir="ltr" value={form.dueAt} min={form.startAt || undefined} onChange={(e) => setForm({ ...form, dueAt: e.target.value })} />
+        <JalaliDateInput value={form.dueAt} min={form.startAt || undefined} onChange={(v) => setForm({ ...form, dueAt: v })} />
       </label>
 
       {!isEdit && (
