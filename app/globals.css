@@ -1683,3 +1683,14 @@ html[data-splash="off"] .splash { display: none !important; }
 .jdp-link:hover:not(:disabled) { background: var(--accent-soft); }
 .jdp-link.is-danger { color: var(--danger); }
 .jdp-link:disabled { opacity: .4; }
+
+/* ---------- custom groups (chat) ---------- */
+.conv-section-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.conv-add { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--accent); font-size: 12px; font-weight: 800; cursor: pointer; }
+.conv-add:hover { border-color: var(--accent-ring); background: var(--accent-soft); }
+
+/* collapse toggle lives at the very bottom of the sidebar */
+.sb-collapse { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 38px; margin-top: 2px; border: 0; border-radius: 14px; background: transparent; color: var(--sb-muted); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; transition: background .15s var(--ease), color .15s var(--ease); }
+.sb-collapse:hover { background: var(--sb-soft); color: #fff; }
+.sidebar.is-collapsed .sb-collapse .nav-label { display: none; }
+@media (max-width: 960px) { .sb-collapse { display: none; } }

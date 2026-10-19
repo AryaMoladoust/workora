@@ -76,18 +76,6 @@ export default function Sidebar({ pathname, open, onClose, workspace, role, unre
       </nav>
 
       <div className="sidebar-bottom">
-        <button
-          type="button"
-          className="nav-item sb-collapse"
-          onClick={onToggleCollapse}
-          aria-pressed={collapsed}
-          aria-label={collapsed ? "باز کردن منو" : "جمع کردن منو"}
-          data-tip={collapsed ? "باز کردن منو" : "جمع کردن منو"}
-        >
-          <span className="nav-icon"><Icon name={collapsed ? "chevronsLeft" : "chevronsRight"} size={19} /></span>
-          <span className="nav-label">جمع کردن منو</span>
-        </button>
-
         <div className="sb-quick" role="group" aria-label="دسترسی سریع">
           {quick.map((q) => (
             <Link key={q.key} href={q.href} className="sb-round" aria-label={q.label} data-tip={q.label} onClick={onClose}>
@@ -107,6 +95,17 @@ export default function Sidebar({ pathname, open, onClose, workspace, role, unre
             <small>{role === "owner" ? "مالک فضای کاری" : "عضو فضای کاری"}</small>
           </div>
         </div>
+        <button
+          type="button"
+          className="sb-collapse"
+          onClick={onToggleCollapse}
+          aria-pressed={collapsed}
+          aria-label={collapsed ? "باز کردن منو" : "جمع کردن منو"}
+          data-tip={collapsed ? "باز کردن منو" : "جمع کردن منو"}
+        >
+          <Icon name={collapsed ? "chevronsLeft" : "chevronsRight"} size={18} />
+          <span className="nav-label">جمع کردن منو</span>
+        </button>
       </div>
     </aside>
   );

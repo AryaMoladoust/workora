@@ -6,7 +6,7 @@ export default function ChatAvatar({ id, name, kind = "direct", size = "md", onl
   const letter = Array.from(String(name || "").trim())[0] || "؟";
   return (
     <span
-      className={`cav cav-${size}${kind === "project" ? " cav-group" : ""}`}
+      className={`cav cav-${size}${kind === "project" || kind === "group" ? " cav-group" : ""}`}
       style={{ "--h": hueFromString(String(id || name)) }}
       title={name}
     >

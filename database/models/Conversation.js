@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
 
-export const CONVERSATION_TYPES = ["project", "direct"];
+export const CONVERSATION_TYPES = ["project", "direct", "group"];
 
 // "project": one shared room per project (participants = project members).
+// "group": a custom group created by a member (participantIds = its members, name = title).
 // "direct": a private conversation between exactly two members (directKey = sorted ids joined by ":").
 const conversationSchema = new mongoose.Schema(
   {
@@ -11,6 +12,8 @@ const conversationSchema = new mongoose.Schema(
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: "Project", default: undefined },
     participantIds: { type: [mongoose.Schema.Types.ObjectId], default: undefined },
     directKey: { type: String, default: undefined },
+    name: { type: String, default: undefined, trim: true, maxlength: 80 },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: undefined },
     lastMessageAt: { type: Date, default: null },
     lastMessagePreview: { type: String, default: "" },
     lastMessageAuthorId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },

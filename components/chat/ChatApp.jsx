@@ -12,17 +12,24 @@ function byRecent(a, b) {
   return (b.lastAt || "").localeCompare(a.lastAt || "");
 }
 
-export default function ChatApp({ me, initialProjects, initialDirects, people, initialActiveId }) {
+export default function ChatApp({ me, initialProjects, initialGroups = [], initialDirects, people, initialActiveId }) {
   const { subscribe, status } = useRealtime();
   const [projects, setProjects] = useState(initialProjects);
+  const [groups, setGroups] = useState(initialGroups);
   const [directs, setDirects] = useState(initialDirects);
   const [activeId, setActiveId] = useState(initialActiveId);
   const [query, setQuery] = useState("");
   const [newOpen, setNewOpen] = useState(false);
   const [personQuery, setPersonQuery] = useState("");
   const [error, setError] = useState("");
+  const [groupOpen, setGroupOpen] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [groupPicked, setGroupPicked] = useState([]);
+  const [groupQuery, setGroupQuery] = useState("");
+  const [groupBusy, setGroupBusy] = useState(false);
+  const [groupError, setGroupError] = useState("");
 
-  const all = useMemo(() => [...projects, ...directs], [projects, directs]);
+  const all = useMemo(() => [...projects, ...groups, ...directs], [projects, groups, directs]);
   const active = all.find((c) => c.id === activeId) || null;
 
   /* keep the address bar in sync without navigating */
@@ -37,6 +44,7 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
       const d = await r.json();
       if (!r.ok) return;
       setProjects(d.projects);
+      setGroups(d.groups || []);
       setDirects(d.directs);
     } catch {
       /* offline */
@@ -55,7 +63,7 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
   useEffect(
     () =>
       subscribe((event) => {
-        if (event.type === "reconnected" || event.type === "chat.deleted") {
+        if (event.type === "reconnected" || event.type === "chat.deleted" || event.type === "chat.group") {
           refreshList();
           return;
         }
@@ -64,6 +72,7 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
           const m = event.message;
           const patch = (list) => list.map((c) => (c.id === event.conversationId && c.lastAt === m.createdAt ? { ...c, lastPreview: m.body.slice(0, 120) } : c));
           setProjects(patch);
+          setGroups(patch);
           setDirects(patch);
           return;
         }
@@ -76,6 +85,7 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
           return;
         }
         setProjects(update);
+        setGroups(update);
         setDirects(update);
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -98,21 +108,66 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
   const handleRead = useCallback((id) => {
     const clear = (list) => list.map((c) => (c.id === id && c.unread ? { ...c, unread: 0 } : c));
     setProjects(clear);
+    setGroups(clear);
     setDirects(clear);
   }, []);
 
   const handleMuted = useCallback((id, muted) => {
     const set = (list) => list.map((c) => (c.id === id ? { ...c, muted } : c));
     setProjects(set);
+    setGroups(set);
     setDirects(set);
   }, []);
 
   const handleSent = useCallback((message) => {
     const update = (list) => list.map((c) => (c.id === message.conversationId ? bump(c, message) : c));
     setProjects(update);
+    setGroups(update);
     setDirects(update);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId]);
+
+  const handleLeave = useCallback((id) => {
+    setGroups((list) => list.filter((c) => c.id !== id));
+    setActiveId(null);
+  }, []);
+
+  function openGroupModal() {
+    setGroupName("");
+    setGroupPicked([]);
+    setGroupQuery("");
+    setGroupError("");
+    setGroupOpen(true);
+  }
+
+  function togglePicked(userId) {
+    setGroupPicked((list) => (list.includes(userId) ? list.filter((id) => id !== userId) : [...list, userId]));
+  }
+
+  async function createGroup(e) {
+    e.preventDefault();
+    if (groupBusy) return;
+    setGroupError("");
+    if (groupName.trim().length < 2) return setGroupError("نام گروه را وارد کنید (حداقل ۲ کاراکتر).");
+    if (!groupPicked.length) return setGroupError("حداقل یک عضو انتخاب کنید.");
+    setGroupBusy(true);
+    try {
+      const r = await fetch("/api/chat/groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: groupName.trim(), memberIds: groupPicked }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "ساخت گروه انجام نشد.");
+      setGroups((list) => (list.some((c) => c.id === d.conversation.id) ? list : [d.conversation, ...list]));
+      setActiveId(d.conversation.id);
+      setGroupOpen(false);
+    } catch (err) {
+      setGroupError(err.message);
+    } finally {
+      setGroupBusy(false);
+    }
+  }
 
   async function startDirect(person) {
     setError("");
@@ -136,7 +191,9 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
   const needle = query.trim().toLowerCase();
   const matches = (c) => !needle || c.title.toLowerCase().includes(needle);
   const shownProjects = [...projects].filter(matches).sort(byRecent);
+  const shownGroups = [...groups].filter(matches).sort(byRecent);
   const shownDirects = [...directs].filter(matches).sort(byRecent);
+  const groupPeople = people.filter((p) => `${p.firstName} ${p.lastName}`.toLowerCase().includes(groupQuery.trim().toLowerCase()));
   const shownPeople = people.filter((p) => `${p.firstName} ${p.lastName}`.toLowerCase().includes(personQuery.trim().toLowerCase()));
 
   function renderRow(c) {
@@ -182,11 +239,26 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
 
         <div className="chat-list-body">
           <section className="chat-card">
-            <h3 className="conv-section">گروه‌ها</h3>
+            <h3 className="conv-section">گروه‌های پروژه</h3>
             {shownProjects.length ? (
               <ul>{shownProjects.map(renderRow)}</ul>
             ) : (
               <p className="conv-empty">{projects.length ? "موردی پیدا نشد." : "شما عضو هیچ پروژه‌ای نیستید."}</p>
+            )}
+          </section>
+
+          <section className="chat-card">
+            <h3 className="conv-section conv-section-row">
+              <span>گروه‌های من</span>
+              <button type="button" className="conv-add" onClick={openGroupModal} aria-label="ساخت گروه جدید" title="ساخت گروه جدید">
+                <Icon name="plus" size={14} />
+                گروه جدید
+              </button>
+            </h3>
+            {shownGroups.length ? (
+              <ul>{shownGroups.map(renderRow)}</ul>
+            ) : (
+              <p className="conv-empty">{groups.length ? "موردی پیدا نشد." : "با «گروه جدید» یک گروه با همکاران بسازید."}</p>
             )}
           </section>
 
@@ -213,6 +285,7 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
             onRead={handleRead}
             onMessage={handleSent}
             onMutedChange={handleMuted}
+            onLeave={handleLeave}
           />
         ) : (
           <div className="chat-placeholder">
@@ -222,6 +295,40 @@ export default function ChatApp({ me, initialProjects, initialDirects, people, i
           </div>
         )}
       </div>
+
+      <Modal open={groupOpen} onClose={() => setGroupOpen(false)} title="ساخت گروه جدید" size="sm">
+        <form onSubmit={createGroup}>
+          <label className="field-wide">
+            <span>نام گروه</span>
+            <input type="text" value={groupName} maxLength={80} placeholder="مثلاً تیم طراحی" onChange={(e) => setGroupName(e.target.value)} autoFocus />
+          </label>
+          <div className="search-field" style={{ maxWidth: "none", margin: "12px 0" }}>
+            <Icon name="search" size={18} />
+            <input type="search" placeholder="جستجوی همکار..." value={groupQuery} onChange={(e) => setGroupQuery(e.target.value)} />
+          </div>
+          <p className="field-hint" style={{ marginBottom: 8 }}>{groupPicked.length.toLocaleString("fa-IR")} عضو انتخاب شده (به‌علاوه‌ی شما)</p>
+          <ul className="picker-list">
+            {groupPeople.map((p) => {
+              const on = groupPicked.includes(p.userId);
+              return (
+                <li key={p.userId}>
+                  <button type="button" className={`picker-row${on ? " is-checked" : ""}`} aria-pressed={on} onClick={() => togglePicked(p.userId)}>
+                    <ChatAvatar id={p.userId} name={`${p.firstName} ${p.lastName}`} size="sm" />
+                    <span className="picker-name">{p.firstName} {p.lastName}</span>
+                    <span className="picker-check" aria-hidden="true">{on && <Icon name="check" size={14} strokeWidth={3} />}</span>
+                  </button>
+                </li>
+              );
+            })}
+            {groupPeople.length === 0 && <li className="field-hint">همکاری پیدا نشد.</li>}
+          </ul>
+          {groupError && <div className="form-error" style={{ marginTop: 10 }}>{groupError}</div>}
+          <div className="modal-actions" style={{ marginTop: 14, display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button type="button" className="secondary-button" onClick={() => setGroupOpen(false)}>انصراف</button>
+            <button type="submit" className="primary-button" disabled={groupBusy}>{groupBusy ? "در حال ساخت..." : "ساخت گروه"}</button>
+          </div>
+        </form>
+      </Modal>
 
       <Modal open={newOpen} onClose={() => setNewOpen(false)} title="پیام مستقیم جدید" size="sm">
         <div className="search-field" style={{ maxWidth: "none", marginBottom: 12 }}>

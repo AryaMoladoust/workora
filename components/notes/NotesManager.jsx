@@ -6,6 +6,7 @@ import Modal from "../ui/Modal";
 
 const LABELS = {
   note: { title: "یادداشت", add: "یادداشت جدید", empty: "هنوز یادداشتی ندارید", emptyHint: "متن‌ها و نکته‌های مهم تیم را اینجا نگه دارید.", titlePh: "عنوان یادداشت", bodyPh: "متن یادداشت...", icon: "note" },
+  proxy: { title: "پروکسی", add: "پروکسی جدید", empty: "هنوز پروکسی‌ای به اشتراک نگذاشته‌اید", emptyHint: "لینک پروکسی (تلگرام MTProto، SOCKS، HTTP و ...) را اینجا بگذارید تا همکاران با یک کلیک کپی کنند.", titlePh: "نام پروکسی (مثلاً پروکسی تلگرام آلمان)", bodyPh: "لینک یا مشخصات پروکسی را اینجا بچسبانید (مثلاً tg://proxy?server=...)", icon: "globe" },
   config: { title: "کانفیگ", add: "کانفیگ جدید", empty: "هنوز کانفیگی ندارید", emptyHint: "کانفیگ‌های v2ray، تنظیمات سرور، متغیرهای محیطی و هر متن فنی دیگری را اینجا ذخیره کنید.", titlePh: "نام کانفیگ (مثلاً v2ray سرور آلمان)", bodyPh: "متن کانفیگ را اینجا بچسبانید...", icon: "code" },
 };
 
@@ -35,7 +36,7 @@ async function copyText(text) {
 
 export default function NotesManager({ kind, initialNotes, projects }) {
   const L = LABELS[kind];
-  const isConfig = kind === "config";
+  const isConfig = kind !== "note";
   const [notes, setNotes] = useState(initialNotes);
   const [q, setQ] = useState("");
   const [scope, setScope] = useState("all");
@@ -142,7 +143,7 @@ export default function NotesManager({ kind, initialNotes, projects }) {
               </header>
 
               {isConfig ? (
-                <p className="note-card-meta"><Icon name="check" size={13} strokeWidth={2.4} />محتوای کانفیگ پنهان است · {formatSize(n.size)}</p>
+                <p className="note-card-meta"><Icon name="check" size={13} strokeWidth={2.4} />محتوا پنهان است · برای کپی دکمه‌ی کنار را بزنید · {formatSize(n.size)}</p>
               ) : (
                 <p className="note-card-snippet">{n.snippet || "بدون متن"}</p>
               )}
@@ -194,13 +195,13 @@ export default function NotesManager({ kind, initialNotes, projects }) {
 function NoteEditor({ kind, L, mode, note, projects, onClose, onSaved, onDeleted, onCopy }) {
   const isEdit = mode === "edit";
   const editable = isEdit ? note.canEdit : true;
-  const isConfig = kind === "config";
+  const isConfig = kind !== "note";
 
   const [form, setForm] = useState({
     title: note?.title || "",
     body: note?.body || "",
     tags: (note?.tags || []).join("، "),
-    scope: note?.scope || "private",
+    scope: note?.scope || (kind === "proxy" ? "workspace" : "private"),
     projectId: note?.projectId || projects[0]?.id || "",
     pinned: note?.pinned || false,
   });
@@ -288,7 +289,7 @@ function NoteEditor({ kind, L, mode, note, projects, onClose, onSaved, onDeleted
 
         <label className="field-wide">
           تگ‌ها (با ویرگول جدا کنید)
-          <input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} disabled={!editable} placeholder={isConfig ? "v2ray، آلمان، سرور-۱" : "جلسه، ایده"} />
+          <input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} disabled={!editable} placeholder={kind === "proxy" ? "تلگرام، mtproto، آلمان" : isConfig ? "v2ray، آلمان، سرور-۱" : "جلسه، ایده"} />
         </label>
 
         <label>
@@ -316,7 +317,9 @@ function NoteEditor({ kind, L, mode, note, projects, onClose, onSaved, onDeleted
 
         {isConfig && form.scope !== "private" && (
           <p className="field-hint field-wide warn-hint">
-            هشدار: کانفیگ‌ها معمولاً شامل رمز یا کلید هستند. با گزینه‌ی غیرشخصی، دیگر اعضا هم متن را می‌بینند.
+            {kind === "proxy"
+              ? "توجه: پروکسی برای همه‌ی افراد انتخاب‌شده قابل مشاهده و کپی است."
+              : "هشدار: کانفیگ‌ها معمولاً شامل رمز یا کلید هستند. با گزینه‌ی غیرشخصی، دیگر اعضا هم متن را می‌بینند."}
           </p>
         )}
         {isEdit && !editable && <p className="field-hint field-wide">فقط سازنده می‌تواند این مورد را ویرایش کند ({note.ownerName}).</p>}

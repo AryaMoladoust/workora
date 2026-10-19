@@ -14,6 +14,7 @@ import {
   searchMessages,
   serializeMessages,
   serializeOne,
+  visibleTo,
 } from "../../../../../../lib/chat";
 import ChatMessage from "../../../../../../database/models/ChatMessage";
 import Conversation from "../../../../../../database/models/Conversation";
@@ -42,11 +43,11 @@ export async function GET(request, { params }) {
   await connectToDatabase();
 
   const q = searchParams.get("q");
-  if (q !== null) return NextResponse.json({ results: await searchMessages(access.conversation._id, q) });
+  if (q !== null) return NextResponse.json({ results: await searchMessages(access.conversation._id, q, current.user.id) });
 
   const around = searchParams.get("around");
   if (around) {
-    const window = await messagesAround(access.conversation._id, around);
+    const window = await messagesAround(access.conversation._id, around, current.user.id);
     if (!window) return bad("پیام پیدا نشد.", 404);
     return NextResponse.json({ ...window, reads: await readsOf(access.conversation._id, current.user.id), now: new Date().toISOString() });
   }
@@ -56,7 +57,7 @@ export async function GET(request, { params }) {
   const after = searchParams.get("after");
   const since = searchParams.get("since");
 
-  const filter = { conversationId: access.conversation._id };
+  const filter = { conversationId: access.conversation._id, ...visibleTo(current.user.id) };
   if (before && !Number.isNaN(Date.parse(before))) filter.createdAt = { $lt: new Date(before) };
   if (after && !Number.isNaN(Date.parse(after))) filter.createdAt = { $gt: new Date(after) };
 
@@ -71,7 +72,7 @@ export async function GET(request, { params }) {
 
   let updated = [];
   if (since && !Number.isNaN(Date.parse(since))) {
-    const changed = await ChatMessage.find({ conversationId: access.conversation._id, changedAt: { $gt: new Date(since) } })
+    const changed = await ChatMessage.find({ conversationId: access.conversation._id, changedAt: { $gt: new Date(since) }, ...visibleTo(current.user.id) })
       .sort({ changedAt: 1 })
       .limit(200)
       .lean();

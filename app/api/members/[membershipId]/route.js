@@ -178,6 +178,7 @@ export async function DELETE(request, { params }) {
       await ConversationRead.deleteMany({ conversationId: { $in: directIds } });
       await Conversation.deleteMany({ _id: { $in: directIds } });
     }
+    await Conversation.updateMany({ workspaceId, type: "group", participantIds: userId }, { $pull: { participantIds: userId } });
     await ConversationRead.deleteMany({ userId });
 
     // 3) the membership, and the account itself when it belongs to no other workspace (frees the e-mail)

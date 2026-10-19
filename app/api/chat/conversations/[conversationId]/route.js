@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "../../../../../lib/db";
 import { getCurrentUser } from "../../../../../lib/auth";
-import { conversationAccess, isMutedFor, participantList, pinsOf, presenceOf, readsOf, setMuted } from "../../../../../lib/chat";
+import { conversationAccess, leaveGroupConversation, isMutedFor, participantList, pinsOf, presenceOf, readsOf, setMuted } from "../../../../../lib/chat";
 import User from "../../../../../database/models/User";
 
 export const runtime = "nodejs";
@@ -23,7 +23,7 @@ export async function GET(_request, { params }) {
   await connectToDatabase();
   const [participants, pins, muted, reads] = await Promise.all([
     participantList(current, access),
-    pinsOf(access.conversation._id),
+    pinsOf(access.conversation._id, current.user.id),
     isMutedFor(access.conversation._id, current.user.id),
     readsOf(access.conversation._id, current.user.id),
   ]);
@@ -47,6 +47,11 @@ export async function PATCH(request, { params }) {
   if (!access) return bad("گفتگو پیدا نشد.", 404);
 
   const body = await request.json().catch(() => ({}));
+  if (body.leave === true) {
+    if (access.conversation.type !== "group") return bad("فقط از گروه‌های ساخته‌شده می‌توان خارج شد.");
+    await leaveGroupConversation(current, access.conversation);
+    return NextResponse.json({ ok: true, left: true });
+  }
   if (typeof body.muted !== "boolean") return bad("درخواست نامعتبر است.");
   const muted = await setMuted(current, access.conversation._id, body.muted);
   return NextResponse.json({ ok: true, muted });

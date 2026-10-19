@@ -27,6 +27,8 @@ const chatMessageSchema = new mongoose.Schema(
     authorId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     body: { type: String, required: true, trim: true, minlength: 1, maxlength: 4000 },
     deletedAt: { type: Date, default: null },
+    // "delete for me": users who hid this message from their own view (everyone else still sees it)
+    hiddenFor: { type: [mongoose.Schema.Types.ObjectId], default: undefined },
     replyTo: { type: replySchema, default: undefined },
     mentions: { type: [mongoose.Schema.Types.ObjectId], default: undefined },
     editedAt: { type: Date, default: null },

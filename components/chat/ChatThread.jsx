@@ -52,7 +52,7 @@ function highlight(text, query) {
   return text.split(re).map((part, i) => (i % 2 === 1 ? <mark key={i}>{part}</mark> : part));
 }
 
-export default function ChatThread({ conversation, me, embedded = false, onBack, onRead, onMessage, onMutedChange }) {
+export default function ChatThread({ conversation, me, embedded = false, onBack, onRead, onMessage, onMutedChange, onLeave }) {
   const { status, subscribe, setChatUnread } = useRealtime();
   const [messages, setMessages] = useState([]);
   const [hasMore, setHasMore] = useState(false);
@@ -111,7 +111,7 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
   const onMutedRef = useRef(onMutedChange);
   onMutedRef.current = onMutedChange;
   const convId = conversation.id;
-  const isGroup = conversation.kind === "project";
+  const isGroup = conversation.kind === "project" || conversation.kind === "group";
 
   /* ------------------------------------------------ helpers */
   const applyUpdated = useCallback((m) => {
@@ -487,17 +487,38 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
     deliver(message.id, message.body, message.extra);
   }
 
-  async function remove(message) {
+  async function remove(message, scope = "all") {
     setMenu(null);
     if (message.failed) {
       setMessages((list) => list.filter((m) => m.id !== message.id));
       return;
     }
-    if (!window.confirm("این پیام حذف شود؟")) return;
-    const r = await fetch(`/api/chat/conversations/${convId}/messages/${message.id}`, { method: "DELETE" });
+    const forMe = scope === "me";
+    if (!window.confirm(forMe ? "این پیام فقط برای شما پاک شود؟ دیگران همچنان آن را می‌بینند." : "این پیام برای همه حذف شود؟")) return;
+    const r = await fetch(`/api/chat/conversations/${convId}/messages/${message.id}${forMe ? "?scope=me" : ""}`, { method: "DELETE" });
     const d = await r.json().catch(() => ({}));
-    if (!r.ok) setError(d.error || "حذف پیام انجام نشد.");
-    else applyUpdated({ id: message.id, deleted: true, body: "", pinned: false, reactions: [], mentions: [], replyTo: null, edited: false });
+    if (!r.ok) {
+      setError(d.error || "حذف پیام انجام نشد.");
+      return;
+    }
+    if (forMe) {
+      setMessages((list) => list.filter((m) => m.id !== message.id));
+      setPins((list) => list.filter((p) => p.id !== message.id));
+    } else {
+      applyUpdated({ id: message.id, deleted: true, body: "", pinned: false, reactions: [], mentions: [], replyTo: null, edited: false });
+    }
+  }
+
+  async function leaveGroup() {
+    if (!window.confirm("از این گروه خارج می‌شوید و پیام‌های آن را دیگر نمی‌بینید. ادامه می‌دهید؟")) return;
+    const r = await fetch(`/api/chat/conversations/${convId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ leave: true }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) setError(d.error || "خروج از گروه انجام نشد.");
+    else onLeave?.(convId);
   }
 
   /* ------------------------------------------------ message actions */
@@ -755,7 +776,7 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
   if (isGroup) {
     subtitle = participants.length
       ? `${participants.length.toLocaleString("fa-IR")} عضو · ${onlineCount.toLocaleString("fa-IR")} آنلاین`
-      : "گفتگوی گروهی پروژه";
+      : conversation.kind === "group" ? "گروه" : "گفتگوی گروهی پروژه";
   } else if (otherPresence?.online) {
     subtitle = "آنلاین";
   } else if (otherPresence?.lastSeenText) {
@@ -792,6 +813,11 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
         <button type="button" className={`thread-action${muted ? " is-on" : ""}`} aria-label={muted ? "برداشتن حالت بی‌صدا" : "بی‌صدا کردن گفتگو"} aria-pressed={muted} title={muted ? "بی‌صدا است؛ برای فعال کردن اعلان‌ها بزنید" : "بی‌صدا کردن گفتگو"} onClick={toggleMute}>
           <Icon name={muted ? "bellOff" : "bell"} size={18} />
         </button>
+        {conversation.kind === "group" && (
+          <button type="button" className="thread-action" aria-label="خروج از گروه" title="خروج از گروه" onClick={leaveGroup}>
+            <Icon name="logout" size={18} />
+          </button>
+        )}
       </header>
 
       {searchOpen && (
@@ -1158,7 +1184,8 @@ function Message({
               <button type="button" role="menuitem" onClick={() => onCopy(message)}><Icon name="copy" size={16} />کپی متن</button>
               <button type="button" role="menuitem" onClick={() => onPin(message)}><Icon name="pin" size={16} />{message.pinned ? "برداشتن سنجاق" : "سنجاق کردن"}</button>
               {mine && <button type="button" role="menuitem" onClick={() => onEdit(message)}><Icon name="pencil" size={16} />ویرایش</button>}
-              {mine && <button type="button" role="menuitem" className="is-danger" onClick={() => onDelete(message)}><Icon name="trash" size={16} />حذف</button>}
+              <button type="button" role="menuitem" className="is-danger" onClick={() => onDelete(message, "me")}><Icon name="trash" size={16} />حذف برای من</button>
+              {mine && <button type="button" role="menuitem" className="is-danger" onClick={() => onDelete(message, "all")}><Icon name="trash" size={16} />حذف برای همه</button>}
             </div>
           )}
         </div>

@@ -58,11 +58,17 @@ export async function PATCH(request, { params }) {
   return NextResponse.json({ message: serialized });
 }
 
-// Authors can delete their own messages (the row stays, shown as "deleted").
-export async function DELETE(_request, { params }) {
+// ?scope=me  → "delete for me": hides any message (also other people's) from the caller's own view only.
+// default    → "delete for everyone": authors only (the row stays, shown as "deleted").
+export async function DELETE(request, { params }) {
   const ctx = await load(params);
   if (ctx.error) return ctx.error;
   const { current, access, message } = ctx;
+
+  if (new URL(request.url).searchParams.get("scope") === "me") {
+    await ChatMessage.updateOne({ _id: message._id }, { $addToSet: { hiddenFor: current.user.id } });
+    return NextResponse.json({ ok: true, scope: "me" });
+  }
 
   if (String(message.authorId) !== current.user.id) return bad("فقط نویسنده می‌تواند پیام را حذف کند.", 403);
   if (message.deletedAt) return NextResponse.json({ ok: true });

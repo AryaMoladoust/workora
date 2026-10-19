@@ -1,9 +1,10 @@
 import mongoose from "mongoose";
 
-export const NOTE_KINDS = ["note", "config"];
+export const NOTE_KINDS = ["note", "config", "proxy"];
 export const NOTE_SCOPES = ["private", "workspace", "project"];
 
-// One engine for both "یادداشت‌ها" (notes) and "کانفیگ‌ها" (configs: v2ray, env snippets, ...).
+// One engine for "یادداشت‌ها" (notes), "کانفیگ‌ها" (configs: v2ray, env snippets, ...) and
+// "پروکسی‌های اشتراکی" (proxy: proxy links/servers a team shares with each other).
 const noteSchema = new mongoose.Schema(
   {
     workspaceId: { type: mongoose.Schema.Types.ObjectId, ref: "Workspace", required: true, index: true },
