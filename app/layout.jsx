@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import AppShell from "../components/layout/AppShell";
 import PwaProvider from "../components/pwa/PwaProvider";
+import FeedbackProvider from "../components/ui/Feedback";
 import Splash from "../components/splash/Splash";
 import { getCachedCurrentUser } from "../lib/require-auth";
 import {
@@ -86,6 +87,7 @@ export default async function RootLayout({ children }) {
       </head>
       <body>
         <Splash />
+        <FeedbackProvider>
         <PwaProvider signedIn={Boolean(current?.user)}>
           <AppShell
             user={current?.user ?? null}
@@ -99,6 +101,7 @@ export default async function RootLayout({ children }) {
             {children}
           </AppShell>
         </PwaProvider>
+        </FeedbackProvider>
       </body>
     </html>
   );

@@ -8,6 +8,8 @@ const conversationReadSchema = new mongoose.Schema(
     lastReadAt: { type: Date, required: true, default: Date.now },
     // the user silenced this conversation (no push, not counted in the sidebar badge)
     muted: { type: Boolean, default: false },
+    // "delete chat" for a direct conversation: hidden from this user's list until a new message arrives
+    hidden: { type: Boolean, default: false },
   },
   { versionKey: false }
 );

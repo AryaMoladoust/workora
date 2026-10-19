@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Icon from "../ui/Icon";
 import Modal from "../ui/Modal";
+import { useToast } from "../ui/Feedback";
 
 const LABELS = {
   note: { title: "یادداشت", add: "یادداشت جدید", empty: "هنوز یادداشتی ندارید", emptyHint: "متن‌ها و نکته‌های مهم تیم را اینجا نگه دارید.", titlePh: "عنوان یادداشت", bodyPh: "متن یادداشت...", icon: "note" },
@@ -42,7 +43,7 @@ export default function NotesManager({ kind, initialNotes, projects }) {
   const [scope, setScope] = useState("all");
   const [editor, setEditor] = useState(null); // { mode, note }
   const [opening, setOpening] = useState(false);
-  const [toast, setToast] = useState("");
+  const toast = useToast();
   const [error, setError] = useState("");
   const first = useRef(true);
 
@@ -68,8 +69,8 @@ export default function NotesManager({ kind, initialNotes, projects }) {
   }, [q, scope, kind]);
 
   function flash(message) {
-    setToast(message);
-    setTimeout(() => setToast(""), 2200);
+    const failed = message.includes("انجام نشد");
+    toast(message.replace(" ✓", ""), { kind: failed ? "error" : "success", duration: 2600 });
   }
 
   async function openNote(note) {
@@ -166,7 +167,6 @@ export default function NotesManager({ kind, initialNotes, projects }) {
         </div>
       )}
 
-      {toast && <div className="toast" role="status">{toast}</div>}
 
       {editor && (
         <NoteEditor

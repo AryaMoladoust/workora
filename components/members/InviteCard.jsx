@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Icon from "../ui/Icon";
+import { useConfirm } from "../ui/Feedback";
 
 export default function InviteCard({ initial }) {
+  const confirm = useConfirm();
   const [invite, setInvite] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -63,7 +65,7 @@ export default function InviteCard({ initial }) {
               type="button"
               className="danger-button"
               disabled={busy}
-              onClick={() => window.confirm("کد جدید ساخته می‌شود و کد قبلی دیگر کار نمی‌کند. ادامه می‌دهید؟") && call("POST")}
+              onClick={async () => (await confirm({ title: "ساخت کد جدید", message: "کد جدید ساخته می‌شود و کد قبلی دیگر کار نمی‌کند. ادامه می‌دهید؟", confirmLabel: "ساخت کد جدید", danger: true })) && call("POST")}
             >
               ساخت کد جدید
             </button>

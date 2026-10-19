@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useConfirm } from "../ui/Feedback";
 import { STATUS_LABELS, PRIORITY_LABELS } from "../../lib/format";
 
 // Stage 2 keeps the existing task logic (create / change status / delete) inside the new design.
 // Stage 3 replaces this with the full task experience (assignees, kanban, filters, comments).
 export default function ProjectTasks({ projectId, canManage }) {
+  const confirm = useConfirm();
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -60,7 +62,7 @@ export default function ProjectTasks({ projectId, canManage }) {
   }
 
   async function removeTask(task) {
-    if (!window.confirm("این وظیفه حذف شود؟")) return;
+    if (!(await confirm({ title: "حذف وظیفه", message: "این وظیفه حذف شود؟", confirmLabel: "حذف", danger: true }))) return;
     const r = await fetch(`/api/projects/${projectId}/tasks/${task.id}`, { method: "DELETE" });
     const d = await r.json();
     if (r.ok) setTasks((x) => x.filter((t) => t.id !== task.id));

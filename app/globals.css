@@ -1694,3 +1694,56 @@ html[data-splash="off"] .splash { display: none !important; }
 .sb-collapse:hover { background: var(--sb-soft); color: #fff; }
 .sidebar.is-collapsed .sb-collapse .nav-label { display: none; }
 @media (max-width: 960px) { .sb-collapse { display: none; } }
+
+/* ---------- glass notifications (toasts) & confirm dialog ---------- */
+.gtoast-stack { position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); inset-inline: 0; z-index: 400; display: grid; justify-items: center; gap: 10px; padding: 0 14px; pointer-events: none; }
+.gtoast {
+  --tone: var(--accent);
+  position: relative; overflow: hidden; pointer-events: auto;
+  display: flex; align-items: center; gap: 12px; width: min(420px, 100%); padding: 12px 14px; border-radius: 20px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface) 62%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%);
+  border: 1px solid color-mix(in srgb, #fff 45%, transparent);
+  box-shadow: 0 18px 44px -16px rgba(16, 24, 40, .38), inset 0 1px 0 rgba(255, 255, 255, .5);
+  animation: gtoast-in .32s cubic-bezier(.2, .9, .25, 1.15);
+}
+:root[data-mode="dark"] .gtoast, .gtoast-dark { border-color: rgba(255, 255, 255, .12); box-shadow: 0 18px 44px -14px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .08); }
+@media (prefers-color-scheme: dark) { :root[data-mode="system"] .gtoast { border-color: rgba(255, 255, 255, .12); box-shadow: 0 18px 44px -14px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .08); } }
+.gtoast.is-clickable { cursor: pointer; }
+.gtoast.is-clickable:hover { transform: translateY(1px); }
+.gtoast.is-leaving { animation: gtoast-out .22s ease forwards; }
+.gtoast-success { --tone: #16a34a; }
+.gtoast-error { --tone: #e5484d; }
+.gtoast-warning { --tone: #f59e0b; }
+.gtoast-chat { --tone: var(--accent); }
+.gtoast-icon { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 12px; color: #fff; background: linear-gradient(135deg, var(--tone), color-mix(in srgb, var(--tone) 62%, #7c5cff)); box-shadow: 0 8px 18px -8px var(--tone); }
+.gtoast-text { flex: 1; min-width: 0; display: grid; gap: 2px; line-height: 1.55; }
+.gtoast-text strong { font-size: 14px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gtoast-text span { font-size: 13px; color: var(--muted); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.gtoast-text strong:only-child { font-weight: 700; }
+.gtoast-text > span:only-child { color: var(--text); font-weight: 600; font-size: 13.5px; }
+.gtoast-close { flex: none; width: 26px; height: 26px; display: grid; place-items: center; border: 0; border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; }
+.gtoast-close:hover { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
+.gtoast-bar { position: absolute; inset-inline: 0; bottom: 0; height: 3px; background: var(--tone); opacity: .75; transform-origin: right; animation: gtoast-bar var(--dur) linear forwards; }
+.gtoast:hover .gtoast-bar { animation-play-state: paused; }
+@keyframes gtoast-in { from { opacity: 0; transform: translateY(-16px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes gtoast-out { to { opacity: 0; transform: translateY(-10px) scale(.97); } }
+@keyframes gtoast-bar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+.gconfirm-backdrop { position: fixed; inset: 0; z-index: 410; display: grid; place-items: center; padding: 18px; background: rgba(12, 14, 24, .38); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); animation: gfade .18s ease; }
+.gconfirm { width: min(400px, 100%); display: grid; justify-items: center; gap: 8px; padding: 26px 22px 20px; border-radius: 26px; text-align: center; color: var(--text); background: color-mix(in srgb, var(--surface) 74%, transparent); -webkit-backdrop-filter: blur(26px) saturate(180%); backdrop-filter: blur(26px) saturate(180%); border: 1px solid color-mix(in srgb, #fff 45%, transparent); box-shadow: 0 30px 70px -24px rgba(10, 14, 30, .55), inset 0 1px 0 rgba(255, 255, 255, .5); animation: gtoast-in .26s cubic-bezier(.2, .9, .25, 1.15); }
+:root[data-mode="dark"] .gconfirm { border-color: rgba(255, 255, 255, .12); }
+.gconfirm-icon { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 18px; color: #fff; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #7c5cff)); box-shadow: 0 12px 24px -10px var(--accent); }
+.gconfirm.is-danger .gconfirm-icon { background: linear-gradient(135deg, #ef4444, #f97316); box-shadow: 0 12px 24px -10px #ef4444; }
+.gconfirm h3 { font-size: 17px; font-weight: 800; margin-top: 4px; }
+.gconfirm p { font-size: 13.5px; line-height: 1.9; color: var(--muted); white-space: pre-line; }
+.gconfirm-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.gconfirm-btn { height: 44px; border-radius: 14px; border: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 70%, transparent); color: var(--text); font: inherit; font-weight: 700; cursor: pointer; transition: transform .12s var(--ease), background .15s var(--ease); }
+.gconfirm-btn:hover { background: var(--surface-2); }
+.gconfirm-btn:active { transform: scale(.97); }
+.gconfirm-btn.is-primary { border-color: transparent; color: #fff; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #7c5cff)); box-shadow: 0 10px 22px -10px var(--accent); }
+.gconfirm-btn.is-primary.is-danger { background: linear-gradient(135deg, #ef4444, #f97316); box-shadow: 0 10px 22px -10px #ef4444; }
+@keyframes gfade { from { opacity: 0; } to { opacity: 1; } }
+@media (max-width: 960px) { .gtoast-stack { top: calc(10px + env(safe-area-inset-top, 0px)); } }
+.thread-action.is-danger:hover { color: #e5484d; background: color-mix(in srgb, #e5484d 12%, transparent); }

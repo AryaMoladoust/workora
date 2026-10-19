@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "../ui/Feedback";
 
 const PwaContext = createContext(null);
 
@@ -41,6 +42,9 @@ export default function PwaProvider({ signedIn = false, children }) {
   const [subscribed, setSubscribed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const toast = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
 
   /* ---------- environment + service worker ---------- */
   useEffect(() => {
@@ -77,6 +81,14 @@ export default function PwaProvider({ signedIn = false, children }) {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return undefined;
     function onMessage(event) {
+      if (event.data?.type === "push" && event.data.payload) {
+        const p = event.data.payload;
+        // the live connection already announces these in-app; only show the push copy when it cannot
+        const live = window.__wkLive;
+        if (p.kind !== "test" && live && (p.kind !== "chat" || live === "ws")) return;
+        toastRef.current?.({ kind: p.kind === "chat" ? "chat" : "info", title: p.title, body: p.body, href: p.url });
+        return;
+      }
       if (event.data?.type === "navigate" && typeof event.data.url === "string") {
         try {
           const u = new URL(event.data.url, window.location.origin);

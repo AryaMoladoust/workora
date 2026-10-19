@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useConfirm, useToast } from "../ui/Feedback";
 import Icon from "../ui/Icon";
 import ChatAvatar from "./ChatAvatar";
 import EmojiPicker from "./EmojiPicker";
@@ -110,6 +111,8 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
   onMessageRef.current = onMessage;
   const onMutedRef = useRef(onMutedChange);
   onMutedRef.current = onMutedChange;
+  const confirm = useConfirm();
+  const toast = useToast();
   const convId = conversation.id;
   const isGroup = conversation.kind === "project" || conversation.kind === "group";
 
@@ -494,7 +497,12 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
       return;
     }
     const forMe = scope === "me";
-    if (!window.confirm(forMe ? "این پیام فقط برای شما پاک شود؟ دیگران همچنان آن را می‌بینند." : "این پیام برای همه حذف شود؟")) return;
+    const ok = await confirm(
+      forMe
+        ? { title: "حذف برای من", message: "این پیام فقط برای شما پاک می‌شود و دیگران همچنان آن را می‌بینند.", confirmLabel: "حذف برای من", danger: true }
+        : { title: "حذف برای همه", message: "این پیام برای همه‌ی اعضا کاملاً پاک می‌شود.", confirmLabel: "حذف برای همه", danger: true }
+    );
+    if (!ok) return;
     const r = await fetch(`/api/chat/conversations/${convId}/messages/${message.id}${forMe ? "?scope=me" : ""}`, { method: "DELETE" });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) {
@@ -509,8 +517,26 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
     }
   }
 
+  async function deleteConversation() {
+    const isGroupChat = conversation.kind === "group";
+    const ok = await confirm(
+      isGroupChat
+        ? { title: "حذف گروه", message: `گروه «${conversation.title}» با همه‌ی پیام‌هایش برای همه‌ی اعضا حذف می‌شود. این کار برگشت‌پذیر نیست.`, confirmLabel: "حذف گروه", danger: true }
+        : { title: "حذف چت", message: `همه‌ی پیام‌های این گفتگو فقط برای شما پاک می‌شود و گفتگو از فهرست شما برمی‌دارد. طرف مقابل پیام‌هایش را می‌بیند.`, confirmLabel: "حذف چت", danger: true }
+    );
+    if (!ok) return;
+    const r = await fetch(`/api/chat/conversations/${convId}`, { method: "DELETE" });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      setError(d.error || "حذف انجام نشد.");
+      return;
+    }
+    toast.success(isGroupChat ? "گروه حذف شد" : "چت حذف شد");
+    onLeave?.(convId);
+  }
+
   async function leaveGroup() {
-    if (!window.confirm("از این گروه خارج می‌شوید و پیام‌های آن را دیگر نمی‌بینید. ادامه می‌دهید؟")) return;
+    if (!(await confirm({ title: "خروج از گروه", message: "از این گروه خارج می‌شوید و پیام‌های آن را دیگر نمی‌بینید.", confirmLabel: "خروج از گروه", danger: true }))) return;
     const r = await fetch(`/api/chat/conversations/${convId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -759,6 +785,7 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
   const items = [];
   let prev = null;
   for (const m of messages) {
+    if (m.deleted) continue; // deleted messages vanish completely
     const newDay = !prev || prev.dayKey !== m.dayKey;
     const grouped = !newDay && prev.authorId === m.authorId && !prev.deleted && new Date(m.createdAt) - new Date(prev.createdAt) < GROUP_GAP_MS;
     if (newDay) items.push({ kind: "day", key: `d-${m.dayKey}-${m.id}`, label: dayLabel(m.dayKey) });
@@ -816,6 +843,11 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
         {conversation.kind === "group" && (
           <button type="button" className="thread-action" aria-label="خروج از گروه" title="خروج از گروه" onClick={leaveGroup}>
             <Icon name="logout" size={18} />
+          </button>
+        )}
+        {((conversation.kind === "group" && conversation.isCreator) || conversation.kind === "direct") && onLeave && (
+          <button type="button" className="thread-action is-danger" aria-label={conversation.kind === "group" ? "حذف گروه" : "حذف چت"} title={conversation.kind === "group" ? "حذف گروه" : "حذف چت"} onClick={deleteConversation}>
+            <Icon name="trash" size={18} />
           </button>
         )}
       </header>

@@ -3,17 +3,19 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "../ui/Icon";
+import { useConfirm } from "../ui/Feedback";
 import { dateTime } from "../../lib/format";
 
 export default function SignupRequests({ initialEnabled, requests, domainHint }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [enabled, setEnabled] = useState(initialEnabled);
   const [busyId, setBusyId] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
   async function review(id, action) {
-    if (action === "reject" && !window.confirm("این درخواست رد و حذف می‌شود. ادامه می‌دهید؟")) return;
+    if (action === "reject" && !(await confirm({ title: "رد درخواست", message: "این درخواست رد و حذف می‌شود. ادامه می‌دهید؟", confirmLabel: "رد درخواست", danger: true }))) return;
     setBusyId(id);
     setError("");
     setNotice("");

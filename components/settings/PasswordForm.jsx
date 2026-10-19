@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Icon from "../ui/Icon";
+import { useConfirm } from "../ui/Feedback";
 
 export default function PasswordForm() {
+  const confirm = useConfirm();
   const [form, setForm] = useState({ currentPassword: "", newPassword: "", confirm: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -38,7 +40,7 @@ export default function PasswordForm() {
   }
 
   async function signOutOthers() {
-    if (!window.confirm("از همه‌ی دستگاه‌های دیگر خارج می‌شوید (این دستگاه می‌ماند). ادامه می‌دهید؟")) return;
+    if (!(await confirm({ title: "خروج از دستگاه‌های دیگر", message: "از همه‌ی دستگاه‌های دیگر خارج می‌شوید (این دستگاه می‌ماند). ادامه می‌دهید؟", confirmLabel: "خروج از بقیه", danger: true }))) return;
     setSigningOut(true);
     setSignedOut(false);
     try {

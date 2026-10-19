@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "../ui/Icon";
 import Modal from "../ui/Modal";
+import { useConfirm } from "../ui/Feedback";
 import { PERMISSIONS } from "../../lib/permissions";
 import { initials, hueFromString } from "../../lib/format";
 
@@ -45,6 +46,7 @@ function PermissionList({ value, onChange, allowed, disabled }) {
 }
 
 export default function MembersManager({ members, canManage, currentUserId, grantable }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
@@ -116,13 +118,17 @@ export default function MembersManager({ members, canManage, currentUserId, gran
 
   async function removeMember() {
     const name = `${editing.firstName} ${editing.lastName}`.trim();
-    const ok = window.confirm(
+    const ok = await confirm({
+      title: `حذف «${name}»`,
+      confirmLabel: "حذف برای همیشه",
+      danger: true,
+      message:
       `«${name}» برای همیشه از فضای کاری حذف شود؟\n\n` +
         "• از همه‌ی پروژه‌ها خارج می‌شود و دیگر نمی‌تواند وارد شود.\n" +
         "• وظایف او بدون مسئول می‌ماند و یادداشت‌های خصوصی و گفتگوهای مستقیمش پاک می‌شود.\n" +
         "• کامنت‌ها و پیام‌های پروژه‌ای‌اش می‌ماند و با نام «کاربر حذف‌شده» دیده می‌شود.\n\n" +
-        "این کار برگشت‌پذیر نیست. اگر فقط می‌خواهید جلوی ورودش را بگیرید، به‌جای حذف «غیرفعال» کنید."
-    );
+        "این کار برگشت‌پذیر نیست. اگر فقط می‌خواهید جلوی ورودش را بگیرید، به‌جای حذف «غیرفعال» کنید.",
+    });
     if (!ok) return;
     setBusy(true);
     setError("");

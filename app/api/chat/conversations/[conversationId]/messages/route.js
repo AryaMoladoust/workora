@@ -57,7 +57,7 @@ export async function GET(request, { params }) {
   const after = searchParams.get("after");
   const since = searchParams.get("since");
 
-  const filter = { conversationId: access.conversation._id, ...visibleTo(current.user.id) };
+  const filter = { conversationId: access.conversation._id, deletedAt: null, ...visibleTo(current.user.id) };
   if (before && !Number.isNaN(Date.parse(before))) filter.createdAt = { $lt: new Date(before) };
   if (after && !Number.isNaN(Date.parse(after))) filter.createdAt = { $gt: new Date(after) };
 
@@ -117,6 +117,8 @@ export async function POST(request, { params }) {
         { _id: access.conversation._id },
         { $set: { lastMessageAt: message.createdAt, lastMessagePreview: text.slice(0, 120), lastMessageAuthorId: current.user.id } }
       ),
+      // a participant who had deleted this chat sees it again now that there is something new
+      ConversationRead.updateMany({ conversationId: access.conversation._id, hidden: true }, { $set: { hidden: false } }),
       // the sender has obviously read everything up to now
       ConversationRead.updateOne(
         { conversationId: access.conversation._id, userId: current.user.id },

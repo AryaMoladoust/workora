@@ -129,6 +129,7 @@ export default function ChatApp({ me, initialProjects, initialGroups = [], initi
 
   const handleLeave = useCallback((id) => {
     setGroups((list) => list.filter((c) => c.id !== id));
+    setDirects((list) => list.filter((c) => c.id !== id));
     setActiveId(null);
   }, []);
 
