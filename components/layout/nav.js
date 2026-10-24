@@ -6,6 +6,7 @@ export const NAV_GROUPS = [
       { href: "/projects", label: "پروژه‌ها", icon: "folder" },
       { href: "/tasks", label: "وظایف من", icon: "tasks" },
       { href: "/chat", label: "چت", icon: "chat" },
+      { href: "/profile", label: "پروفایل من", icon: "user" },
     ],
   },
   {
@@ -53,4 +54,5 @@ export const BOTTOM_NAV_ITEMS = [
 ];
 
 // Pages that belong to the "account" tab even though they are not a tab of their own.
-export const ACCOUNT_PATHS = ["/settings", "/notifications"];
+export const ACCOUNT_PATHS = [
+  "/profile","/settings", "/notifications"];

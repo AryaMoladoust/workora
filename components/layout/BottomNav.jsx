@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Icon from "../ui/Icon";
+import Avatar from "../ui/Avatar";
 import PwaControls from "../pwa/PwaControls";
 import { usePwa } from "../pwa/PwaProvider";
 import { BOTTOM_NAV_ITEMS, ACCOUNT_PATHS, isActivePath } from "./nav";
@@ -67,7 +68,7 @@ export default function BottomNav({ pathname, user, role, unread = 0, chatUnread
       {sheetOpen && (
         <div className="bnav-sheet" role="dialog" aria-modal="true" aria-label="حساب کاربری" tabIndex={-1} ref={sheetRef}>
           <div className="bnav-sheet-head">
-            <span className="avatar avatar-lg" style={{ "--h": hue }}>{initials(user.firstName, user.lastName)}</span>
+            <Avatar user={user} size="lg" />
             <div>
               <strong>{fullName}</strong>
               <small dir="ltr">{user.email}</small>
@@ -75,6 +76,10 @@ export default function BottomNav({ pathname, user, role, unread = 0, chatUnread
             <span className={`chip ${role === "owner" ? "chip-owner" : "chip-member"}`}>{role === "owner" ? "مالک" : "عضو"}</span>
           </div>
 
+          <Link href="/profile" className="bnav-row">
+            <Icon name="user" size={19} />
+            <span>پروفایل من</span>
+          </Link>
           <Link href="/notifications" className="bnav-row">
             <Icon name="bell" size={19} />
             <span>اعلان‌ها</span>

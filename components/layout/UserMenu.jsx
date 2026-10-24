@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Icon from "../ui/Icon";
+import Avatar from "../ui/Avatar";
 import PwaControls from "../pwa/PwaControls";
 import { usePwa } from "../pwa/PwaProvider";
 import { initials, hueFromString } from "../../lib/format";
@@ -53,7 +55,7 @@ export default function UserMenu({ user, role }) {
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
-        <span className="avatar" style={{ "--h": hue }}>{initials(user.firstName, user.lastName)}</span>
+        <Avatar user={user} />
         <span className="user-button-text">
           <strong>{fullName}</strong>
           <small>{role === "owner" ? "مالک" : "عضو"}</small>
@@ -64,12 +66,16 @@ export default function UserMenu({ user, role }) {
       {open && (
         <div className="popover user-popover" role="menu">
           <div className="user-popover-head">
-            <span className="avatar avatar-lg" style={{ "--h": hue }}>{initials(user.firstName, user.lastName)}</span>
+            <Avatar user={user} size="lg" />
             <div>
               <strong>{fullName}</strong>
               <small dir="ltr">{user.email}</small>
             </div>
           </div>
+          <Link href="/profile" role="menuitem" className="menu-item" onClick={() => setOpen(false)}>
+            <Icon name="user" size={18} />
+            پروفایل من
+          </Link>
           <div className="pwa-menu" role="group" aria-label="برنامه و اعلان‌ها">
             <PwaControls rowClass="menu-item" />
           </div>

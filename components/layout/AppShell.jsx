@@ -61,6 +61,7 @@ function ShellFrame({ pathname, user, workspace, role, theme, mode, font, sideba
         pathname={pathname}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
+        user={user}
         workspace={workspace}
         role={role}
         unread={unread}

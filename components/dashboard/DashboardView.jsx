@@ -11,6 +11,7 @@ import {
   WeeklyBars,
   TeamCard,
 } from "./widgets";
+import ProfileCard from "../profile/ProfileCard";
 import ActivityFeed from "../activity/ActivityFeed";
 
 function heroSummary(me) {
@@ -23,7 +24,7 @@ function heroSummary(me) {
   return "الان وظیفه بازی ندارید. می‌توانید یک پروژه یا وظیفه جدید تعریف کنید.";
 }
 
-export default function DashboardView({ firstName, data, canManageProjects }) {
+export default function DashboardView({ user, role, firstName, data, profileSummary, canManageProjects }) {
   const now = new Date(data.now);
 
   return (
@@ -58,6 +59,8 @@ export default function DashboardView({ firstName, data, canManageProjects }) {
           <span className="announce-banner-meta">{data.announcement.pinned ? "سنجاق‌شده" : data.announcement.relative}</span>
         </Link>
       )}
+
+      {user && profileSummary && <ProfileCard user={user} summary={profileSummary} role={role} />}
 
       <section className="stat-grid" aria-label="خلاصه وضعیت">
         <StatCard icon="tasks" label="وظایف باز من" value={data.me.open} hint={`${fa(data.me.inProgress)} مورد در حال انجام`} />

@@ -16,3 +16,5 @@ export { default as PushSubscription } from "./PushSubscription";
 export { default as PushConfig } from "./PushConfig";
 export { default as SignupVerification } from "./SignupVerification";
 export { default as PasswordReset } from "./PasswordReset";
+export { default as Profile } from "./Profile";
+export { default as UserAvatar } from "./UserAvatar";

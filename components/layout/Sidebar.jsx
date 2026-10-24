@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "../ui/Icon";
+import Avatar from "../ui/Avatar";
 import { usePwa } from "../pwa/PwaProvider";
 import { NAV_GROUPS, isActivePath } from "./nav";
 
@@ -11,7 +12,7 @@ const faCount = (n) => (n > 99 ? "۹۹+" : n.toLocaleString("fa-IR"));
 
 // Dark floating sidebar: logo on top, grouped links, an expand / collapse switch and round quick buttons at the bottom.
 // Collapsed = icon rail; the name of each icon shows as a tooltip on hover.
-export default function Sidebar({ pathname, open, onClose, workspace, role, unread = 0, chatUnread = 0, collapsed = false, onToggleCollapse }) {
+export default function Sidebar({ pathname, open, onClose, user, workspace, role, unread = 0, chatUnread = 0, collapsed = false, onToggleCollapse }) {
   const router = useRouter();
   const pwa = usePwa();
   const [busy, setBusy] = useState(false);
@@ -36,11 +37,11 @@ export default function Sidebar({ pathname, open, onClose, workspace, role, unre
   return (
     <aside className={`sidebar ${open ? "is-open" : ""} ${collapsed ? "is-collapsed" : ""}`} aria-label="منوی اصلی">
       <div className="sidebar-top">
-        <Link href="/dashboard" className="brand" onClick={onClose} data-tip="Workora">
-          <img src="/logo.png" alt="" width="42" height="42" className="brand-mark" />
+        <Link href="/profile" className="brand sb-profile" onClick={onClose} data-tip="پروفایل من" aria-label="پروفایل من">
+          <Avatar user={user} size="lg" className="sb-avatar" />
           <span className="brand-text">
-            <strong>Workora</strong>
-            <small>{workspace.name}</small>
+            <strong>{`${user.firstName} ${user.lastName}`.trim()}</strong>
+            <small>{role === "owner" ? "مالک فضای کاری" : workspace.name}</small>
           </span>
         </Link>
         <button type="button" className="icon-button sidebar-close" aria-label="بستن منو" onClick={onClose}>
