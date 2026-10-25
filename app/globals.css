@@ -1979,3 +1979,19 @@ html[data-splash="off"] .splash { display: none !important; }
 .pfolder-sk .pfolder-front { background: var(--surface); border-color: var(--border); }
 @media (max-width: 960px) { .project-grid { padding: 16px 6px 22px; background-size: 20px 20px; } }
 @media (hover: none) { .pfolder-paper-1 { transform: rotate(-4deg) translateY(-12px); } .pfolder-paper-2 { transform: rotate(3deg) translateY(-6px); } }
+
+/* ================= group manager (members + settings of a custom chat group) ================= */
+.group-manager { display: grid; gap: 22px; }
+.gm-title { font-size: 14px; font-weight: 800; margin-bottom: 10px; }
+.gm-rename label { display: grid; gap: 8px; font-weight: 700; font-size: 14px; }
+.gm-members, .gm-add { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 270px; overflow-y: auto; }
+.gm-members li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; background: var(--surface-2); }
+.gm-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; font-size: 14px; }
+.gm-name small { color: var(--muted); font-weight: 500; }
+.gm-actions { display: inline-flex; gap: 6px; flex: none; }
+.gm-actions .icon-button { width: 32px; height: 32px; border-radius: 10px; }
+.gm-add li label { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 14px; }
+.gm-add li label:hover { background: var(--surface-2); }
+.group-manager section > input[type="search"] { margin-bottom: 10px; }
+.group-manager .primary-button { margin-top: 12px; }
+.modal-foot .danger-button { display: inline-flex; align-items: center; gap: 6px; }

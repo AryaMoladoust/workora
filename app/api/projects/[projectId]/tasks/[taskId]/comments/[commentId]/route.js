@@ -6,6 +6,7 @@ import { findAccessibleProject } from "../../../../../../../../lib/project-acces
 import { isTaskManager } from "../../../../../../../../lib/tasks";
 import { canDeleteComment } from "../../../../../../../../lib/task-rules";
 import Comment from "../../../../../../../../database/models/Comment";
+import { limitUser } from "../../../../../../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,8 @@ export async function DELETE(_request, { params }) {
   params = await params;
   const current = await getCurrentUser();
   if (!current) return NextResponse.json({ error: "احراز هویت لازم است." }, { status: 401 });
+  const limited = await limitUser(current, "comment");
+  if (limited) return limited;
 
   const ids = [params.projectId, params.taskId, params.commentId];
   if (!ids.every((id) => mongoose.isValidObjectId(id))) {

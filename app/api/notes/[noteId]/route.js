@@ -3,6 +3,7 @@ import { connectToDatabase } from "../../../../lib/db";
 import { getCurrentUser } from "../../../../lib/auth";
 import { canEditNote, findVisibleNote, parseNotePayload, serializeFull } from "../../../../lib/notes";
 import Note from "../../../../database/models/Note";
+import { limitUser } from "../../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
@@ -23,6 +24,8 @@ export async function PATCH(request, { params }) {
   params = await params;
   const current = await getCurrentUser();
   if (!current) return bad("احراز هویت لازم است.", 401);
+  const limited = await limitUser(current, "note");
+  if (limited) return limited;
 
   const existing = await findVisibleNote(current, params.noteId);
   if (!existing) return bad("پیدا نشد.", 404);
@@ -50,6 +53,8 @@ export async function DELETE(_request, { params }) {
   params = await params;
   const current = await getCurrentUser();
   if (!current) return bad("احراز هویت لازم است.", 401);
+  const limited = await limitUser(current, "note");
+  if (limited) return limited;
 
   const existing = await findVisibleNote(current, params.noteId);
   if (!existing) return bad("پیدا نشد.", 404);

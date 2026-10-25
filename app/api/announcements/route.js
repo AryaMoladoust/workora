@@ -5,6 +5,7 @@ import { canPostAnnouncements, serializeAnnouncement } from "../../../lib/announ
 import { actorNameOf, notify } from "../../../lib/activity";
 import Announcement from "../../../database/models/Announcement";
 import Membership from "../../../database/models/Membership";
+import { limitUser } from "../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
@@ -19,6 +20,8 @@ export async function GET() {
 export async function POST(request) {
   const current = await getCurrentUser();
   if (!current) return NextResponse.json({ error: "احراز هویت لازم است." }, { status: 401 });
+  const limited = await limitUser(current, "announce");
+  if (limited) return limited;
   if (!canPostAnnouncements(current)) return NextResponse.json({ error: "اجازه انتشار اطلاعیه ندارید." }, { status: 403 });
 
   try {

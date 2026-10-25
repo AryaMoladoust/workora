@@ -4,6 +4,7 @@ import { getCurrentUser } from "../../../../lib/auth";
 import { avatarPath } from "../../../../lib/profile";
 import User from "../../../../database/models/User";
 import UserAvatar from "../../../../database/models/UserAvatar";
+import { limitUser } from "../../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,8 @@ function bad(message, status = 400) {
 export async function POST(request) {
   const current = await getCurrentUser();
   if (!current) return bad("احراز هویت لازم است.", 401);
+  const limited = await limitUser(current, "avatar");
+  if (limited) return limited;
 
   const body = await request.json().catch(() => ({}));
   const match = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(body.dataUrl || ""));
@@ -47,6 +50,8 @@ export async function POST(request) {
 export async function DELETE() {
   const current = await getCurrentUser();
   if (!current) return bad("احراز هویت لازم است.", 401);
+  const limited = await limitUser(current, "avatar");
+  if (limited) return limited;
   await connectToDatabase();
   await UserAvatar.deleteOne({ userId: current.user.id });
   await User.updateOne({ _id: current.user.id }, { $set: { avatarUrl: null } });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../../lib/auth";
 import { entryForConversation, openDirectConversation, openProjectConversation } from "../../../../lib/chat";
+import { limitUser } from "../../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
@@ -8,6 +9,8 @@ export const runtime = "nodejs";
 export async function POST(request) {
   const current = await getCurrentUser();
   if (!current) return NextResponse.json({ error: "احراز هویت لازم است." }, { status: 401 });
+  const limited = await limitUser(current, "chat:open");
+  if (limited) return limited;
 
   try {
     const body = await request.json().catch(() => ({}));

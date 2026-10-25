@@ -5,6 +5,7 @@ import { getCurrentUser } from "../../../../../../../lib/auth";
 import { conversationAccess, MESSAGE_LIMIT, publishToParticipants, serializeOne } from "../../../../../../../lib/chat";
 import ChatMessage from "../../../../../../../database/models/ChatMessage";
 import Conversation from "../../../../../../../database/models/Conversation";
+import { limitUser } from "../../../../../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
@@ -30,6 +31,8 @@ export async function PATCH(request, { params }) {
   const ctx = await load(params);
   if (ctx.error) return ctx.error;
   const { current, access, message } = ctx;
+  const limited = await limitUser(current, "chat:edit");
+  if (limited) return limited;
 
   if (String(message.authorId) !== current.user.id) return bad("فقط نویسنده می‌تواند پیام را ویرایش کند.", 403);
   if (message.deletedAt) return bad("این پیام حذف شده است.", 400);
@@ -64,6 +67,8 @@ export async function DELETE(request, { params }) {
   const ctx = await load(params);
   if (ctx.error) return ctx.error;
   const { current, access, message } = ctx;
+  const limited = await limitUser(current, "chat:edit");
+  if (limited) return limited;
 
   if (new URL(request.url).searchParams.get("scope") === "me") {
     await ChatMessage.updateOne({ _id: message._id }, { $addToSet: { hiddenFor: current.user.id } });

@@ -38,7 +38,9 @@ export async function POST(request) {
     await connectToDatabase();
 
     const ip = clientIp(request);
-    const accountKey = `login:acct:${ip}:${email}`;
+    // keyed by the canonical mailbox: a.b@gmail.com, ab@gmail.com and ab+x@gmail.com are ONE account for login,
+    // so they must also share one set of attempts
+    const accountKey = `login:acct:${ip}:${emailKey(email)}`;
     const [byIp, byAccount] = await Promise.all([
       hit(`login:ip:${ip}`, { max: 60, windowSec: 900 }),
       hit(accountKey, { max: 8, windowSec: 900 }),

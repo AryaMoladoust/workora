@@ -8,6 +8,7 @@ import { parseOptionalDate } from "../../../lib/validation";
 import { serializeProject } from "../../../lib/projects";
 import { logActivity, notify } from "../../../lib/activity";
 import Project, { PROJECT_STATUSES } from "../../../database/models/Project";
+import { limitUser } from "../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
@@ -23,6 +24,8 @@ export async function GET() {
 export async function POST(request) {
   const current = await getCurrentUser();
   if (!current) return NextResponse.json({ error: "احراز هویت لازم است." }, { status: 401 });
+  const limited = await limitUser(current, "project:create");
+  if (limited) return limited;
   if (!hasPermission(current, "projects.manage")) {
     return NextResponse.json({ error: "اجازه ایجاد پروژه ندارید." }, { status: 403 });
   }

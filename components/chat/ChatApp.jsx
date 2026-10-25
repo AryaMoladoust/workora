@@ -127,6 +127,11 @@ export default function ChatApp({ me, initialProjects, initialGroups = [], initi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId]);
 
+  // the manager renamed the group / changed its members: update its row in the list
+  const handleGroupChanged = useCallback((entry) => {
+    setGroups((list) => list.map((c) => (c.id === entry.id ? { ...c, ...entry } : c)));
+  }, []);
+
   const handleLeave = useCallback((id) => {
     setGroups((list) => list.filter((c) => c.id !== id));
     setDirects((list) => list.filter((c) => c.id !== id));
@@ -287,6 +292,8 @@ export default function ChatApp({ me, initialProjects, initialGroups = [], initi
             onMessage={handleSent}
             onMutedChange={handleMuted}
             onLeave={handleLeave}
+            people={people}
+            onGroupChanged={handleGroupChanged}
           />
         ) : (
           <div className="chat-placeholder">

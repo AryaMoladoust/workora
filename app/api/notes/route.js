@@ -3,6 +3,7 @@ import { connectToDatabase } from "../../../lib/db";
 import { getCurrentUser } from "../../../lib/auth";
 import { NOTE_KINDS, parseNotePayload, queryNotes, serializeFull } from "../../../lib/notes";
 import Note from "../../../database/models/Note";
+import { limitUser } from "../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
@@ -21,6 +22,8 @@ export async function GET(request) {
 export async function POST(request) {
   const current = await getCurrentUser();
   if (!current) return NextResponse.json({ error: "احراز هویت لازم است." }, { status: 401 });
+  const limited = await limitUser(current, "note");
+  if (limited) return limited;
 
   try {
     const body = await request.json().catch(() => ({}));

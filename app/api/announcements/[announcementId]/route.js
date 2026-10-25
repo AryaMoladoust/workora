@@ -4,6 +4,7 @@ import { connectToDatabase } from "../../../../lib/db";
 import { getCurrentUser } from "../../../../lib/auth";
 import { canPostAnnouncements, serializeAnnouncement } from "../../../../lib/announcements";
 import Announcement from "../../../../database/models/Announcement";
+import { limitUser } from "../../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
@@ -21,6 +22,8 @@ export async function PATCH(request, { params }) {
   params = await params;
   const current = await getCurrentUser();
   if (!current) return bad("احراز هویت لازم است.", 401);
+  const limited = await limitUser(current, "announce");
+  if (limited) return limited;
   if (!canPostAnnouncements(current)) return bad("اجازه ویرایش اطلاعیه ندارید.", 403);
 
   const existing = await load(current, params.announcementId);
@@ -46,6 +49,8 @@ export async function DELETE(_request, { params }) {
   params = await params;
   const current = await getCurrentUser();
   if (!current) return bad("احراز هویت لازم است.", 401);
+  const limited = await limitUser(current, "announce");
+  if (limited) return limited;
   if (!canPostAnnouncements(current)) return bad("اجازه حذف اطلاعیه ندارید.", 403);
 
   const existing = await load(current, params.announcementId);

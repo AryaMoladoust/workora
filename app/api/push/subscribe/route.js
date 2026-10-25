@@ -3,6 +3,7 @@ import { connectToDatabase } from "../../../../lib/db";
 import { getCurrentUser } from "../../../../lib/auth";
 import { fromB64u, isAllowedEndpoint } from "../../../../lib/web-push";
 import PushSubscription from "../../../../database/models/PushSubscription";
+import { limitUser } from "../../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
@@ -12,6 +13,8 @@ const MAX_DEVICES_PER_USER = 10;
 export async function POST(request) {
   const current = await getCurrentUser();
   if (!current) return NextResponse.json({ error: "احراز هویت لازم است." }, { status: 401 });
+  const limited = await limitUser(current, "push");
+  if (limited) return limited;
 
   const body = await request.json().catch(() => ({}));
   const sub = body.subscription || {};

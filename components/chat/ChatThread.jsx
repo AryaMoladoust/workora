@@ -6,6 +6,7 @@ import { useConfirm, useToast } from "../ui/Feedback";
 import Icon from "../ui/Icon";
 import ChatAvatar from "./ChatAvatar";
 import EmojiPicker from "./EmojiPicker";
+import GroupManager from "./GroupManager";
 import { useRealtime } from "../realtime/RealtimeProvider";
 import { dayKey, dayLabel } from "../../lib/format";
 
@@ -53,7 +54,7 @@ function highlight(text, query) {
   return text.split(re).map((part, i) => (i % 2 === 1 ? <mark key={i}>{part}</mark> : part));
 }
 
-export default function ChatThread({ conversation, me, embedded = false, onBack, onRead, onMessage, onMutedChange, onLeave }) {
+export default function ChatThread({ conversation, me, embedded = false, people = [], onBack, onRead, onMessage, onMutedChange, onLeave, onGroupChanged }) {
   const { status, subscribe, setChatUnread } = useRealtime();
   const [messages, setMessages] = useState([]);
   const [hasMore, setHasMore] = useState(false);
@@ -66,6 +67,8 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
 
   // conversation details
   const [participants, setParticipants] = useState([]);
+  const [ownerId, setOwnerId] = useState(conversation.ownerId || null); // manager of a custom group
+  const [manageOpen, setManageOpen] = useState(false);
   const [pins, setPins] = useState([]);
   const [pinIndex, setPinIndex] = useState(0);
   const [muted, setMuted] = useState(Boolean(conversation.muted));
@@ -144,6 +147,7 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
       const d = await r.json();
       if (!r.ok) return;
       setParticipants(d.participants || []);
+      setOwnerId(d.ownerId || null);
       setPins(d.pins || []);
       setMuted(Boolean(d.muted));
       setPresence(d.presence || {});
@@ -152,6 +156,18 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
       /* offline */
     }
   }, [convId, mergeReads]);
+
+  // another member changed the group (the conversation list refreshed): reload members + manager
+  const groupSignature = conversation.kind === "group" ? `${conversation.memberCount}:${conversation.isCreator}` : "";
+  const firstSignature = useRef(true);
+  useEffect(() => {
+    if (!groupSignature) return;
+    if (firstSignature.current) {
+      firstSignature.current = false;
+      return;
+    }
+    refreshMeta();
+  }, [groupSignature, refreshMeta]);
 
   /* ------------------------------------------------ read receipts */
   const sendRead = useCallback(async () => {
@@ -842,6 +858,11 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
           <Icon name={muted ? "bellOff" : "bell"} size={18} />
         </button>
         {conversation.kind === "group" && (
+          <button type="button" className="thread-action" aria-label="اعضا و مدیریت گروه" title="اعضا و مدیریت گروه" onClick={() => setManageOpen(true)}>
+            <Icon name="users" size={18} />
+          </button>
+        )}
+        {conversation.kind === "group" && (
           <button type="button" className="thread-action" aria-label="خروج از گروه" title="خروج از گروه" onClick={leaveGroup}>
             <Icon name="logout" size={18} />
           </button>
@@ -1065,6 +1086,23 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
           </button>
         </div>
       </form>
+      {conversation.kind === "group" && manageOpen && (
+        <GroupManager
+          open
+          onClose={() => setManageOpen(false)}
+          conversation={conversation}
+          meId={me.id}
+          ownerId={ownerId}
+          participants={participants}
+          people={people}
+          onChanged={(entry) => {
+            refreshMeta();
+            if (entry) onGroupChanged?.(entry);
+          }}
+          onLeaveGroup={leaveGroup}
+          onDeleteGroup={deleteConversation}
+        />
+      )}
     </section>
   );
 }

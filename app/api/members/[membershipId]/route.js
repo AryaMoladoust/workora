@@ -17,6 +17,8 @@ import PushSubscription from "../../../../database/models/PushSubscription";
 import Conversation from "../../../../database/models/Conversation";
 import ConversationRead from "../../../../database/models/ConversationRead";
 import ChatMessage from "../../../../database/models/ChatMessage";
+import { limitUser } from "../../../../lib/user-limit";
+import { settleGroupsOfUser } from "../../../../lib/chat";
 
 export const runtime = "nodejs";
 
@@ -24,6 +26,8 @@ export async function PATCH(request, { params }) {
   params = await params;
   const current = await getCurrentUser();
   if (!current) return NextResponse.json({ error: "احراز هویت لازم است." }, { status: 401 });
+  const limited = await limitUser(current, "member");
+  if (limited) return limited;
   if (!hasPermission(current, "members.manage")) {
     return NextResponse.json({ error: "اجازه ویرایش اعضا ندارید." }, { status: 403 });
   }
@@ -112,6 +116,11 @@ export async function PATCH(request, { params }) {
         await logActivity(current, { ...base, type: "member.permissions_changed" });
       }
     }
+    if (membershipUpdate.isActive === false && membership.isActive) {
+      // a deactivated person can no longer see or manage their groups: hand them over / clean them up
+      await settleGroupsOfUser(current.workspace.id, membership.userId);
+    }
+
     if (membershipUpdate.isActive !== undefined && membershipUpdate.isActive !== membership.isActive) {
       await logActivity(current, { ...base, type: membershipUpdate.isActive ? "member.activated" : "member.deactivated" });
     }
@@ -133,6 +142,8 @@ export async function DELETE(request, { params }) {
   params = await params;
   const current = await getCurrentUser();
   if (!current) return NextResponse.json({ error: "احراز هویت لازم است." }, { status: 401 });
+  const limited = await limitUser(current, "member");
+  if (limited) return limited;
   if (!hasPermission(current, "members.manage")) {
     return NextResponse.json({ error: "اجازه حذف عضو ندارید." }, { status: 403 });
   }
@@ -178,12 +189,14 @@ export async function DELETE(request, { params }) {
       await ConversationRead.deleteMany({ conversationId: { $in: directIds } });
       await Conversation.deleteMany({ _id: { $in: directIds } });
     }
-    await Conversation.updateMany({ workspaceId, type: "group", participantIds: userId }, { $pull: { participantIds: userId } });
     await ConversationRead.deleteMany({ userId });
 
     // 3) the membership, and the account itself when it belongs to no other workspace (frees the e-mail)
     await Membership.deleteOne({ _id: membership._id });
     if (!(await Membership.exists({ userId }))) await User.deleteOne({ _id: userId });
+    // groups they were in: remaining members keep the group, a new manager is chosen when needed,
+    // and a group with fewer than 2 people left is deleted
+    await settleGroupsOfUser(workspaceId, userId);
 
     await logActivity(current, { type: "member.removed", entityType: "member", entityId: userId, entityTitle: name, meta: { email: user?.email || "" } });
     return NextResponse.json({ ok: true });

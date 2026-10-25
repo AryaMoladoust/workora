@@ -9,6 +9,7 @@ import { canDeleteTask, canEditTask } from "../../../../../../lib/task-rules";
 import { parseOptionalDate } from "../../../../../../lib/validation";
 import Task, { TASK_PRIORITIES, TASK_STATUSES } from "../../../../../../database/models/Task";
 import Comment from "../../../../../../database/models/Comment";
+import { limitUser } from "../../../../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,8 @@ export async function PATCH(request, { params }) {
   params = await params;
   const current = await getCurrentUser();
   if (!current) return bad("احراز هویت لازم است.", 401);
+  const limited = await limitUser(current, "task");
+  if (limited) return limited;
   if (!mongoose.isValidObjectId(params.projectId) || !mongoose.isValidObjectId(params.taskId)) return bad("شناسه نامعتبر است.");
 
   try {
@@ -116,6 +119,8 @@ export async function DELETE(_request, { params }) {
   params = await params;
   const current = await getCurrentUser();
   if (!current) return bad("احراز هویت لازم است.", 401);
+  const limited = await limitUser(current, "task");
+  if (limited) return limited;
   if (!mongoose.isValidObjectId(params.projectId) || !mongoose.isValidObjectId(params.taskId)) return bad("شناسه نامعتبر است.");
 
   const project = await findAccessibleProject(current, params.projectId);

@@ -8,6 +8,7 @@ import { logActivity, notify } from "../../../../../../../lib/activity";
 import Task from "../../../../../../../database/models/Task";
 import Comment from "../../../../../../../database/models/Comment";
 import User from "../../../../../../../database/models/User";
+import { limitUser } from "../../../../../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
@@ -50,6 +51,8 @@ export async function POST(request, { params }) {
   params = await params;
   const current = await getCurrentUser();
   if (!current) return bad("احراز هویت لازم است.", 401);
+  const limited = await limitUser(current, "comment");
+  if (limited) return limited;
 
   const found = await loadTaskWithProject(current, params);
   if (!found) return bad("وظیفه پیدا نشد.", 404);

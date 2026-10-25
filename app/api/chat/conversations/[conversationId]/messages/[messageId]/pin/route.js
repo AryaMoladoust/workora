@@ -4,6 +4,7 @@ import { connectToDatabase } from "../../../../../../../../lib/db";
 import { getCurrentUser } from "../../../../../../../../lib/auth";
 import { conversationAccess, MAX_PINS, publishToParticipants, serializeOne } from "../../../../../../../../lib/chat";
 import ChatMessage from "../../../../../../../../database/models/ChatMessage";
+import { limitUser } from "../../../../../../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
@@ -16,6 +17,8 @@ export async function POST(request, { params }) {
   params = await params;
   const current = await getCurrentUser();
   if (!current) return bad("احراز هویت لازم است.", 401);
+  const limited = await limitUser(current, "chat:pin");
+  if (limited) return limited;
   if (!mongoose.isValidObjectId(params.messageId)) return bad("شناسه نامعتبر است.");
 
   const access = await conversationAccess(current, params.conversationId);

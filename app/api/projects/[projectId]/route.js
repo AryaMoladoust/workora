@@ -7,9 +7,10 @@ import { findAccessibleProject } from "../../../../lib/project-access";
 import { filterActiveMemberIds } from "../../../../lib/members";
 import { parseOptionalDate } from "../../../../lib/validation";
 import Project, { PROJECT_STATUSES } from "../../../../database/models/Project";
-import Task from "../../../../database/models/Task";
 import { serializeProject } from "../../../../lib/projects";
 import { logActivity, notify, userNameMap } from "../../../../lib/activity";
+import { deleteProjectData } from "../../../../lib/project-cleanup";
+import { limitUser } from "../../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
@@ -28,6 +29,8 @@ export async function PATCH(request, { params }) {
   params = await params;
   const current = await getCurrentUser();
   if (!current) return NextResponse.json({ error: "احراز هویت لازم است." }, { status: 401 });
+  const limited = await limitUser(current, "project");
+  if (limited) return limited;
   if (!hasPermission(current, "projects.manage")) {
     return NextResponse.json({ error: "اجازه ویرایش پروژه ندارید." }, { status: 403 });
   }
@@ -127,6 +130,8 @@ export async function DELETE(_request, { params }) {
   params = await params;
   const current = await getCurrentUser();
   if (!current) return NextResponse.json({ error: "احراز هویت لازم است." }, { status: 401 });
+  const limited = await limitUser(current, "project");
+  if (limited) return limited;
   if (!hasPermission(current, "projects.manage")) {
     return NextResponse.json({ error: "اجازه حذف پروژه ندارید." }, { status: 403 });
   }
@@ -136,14 +141,18 @@ export async function DELETE(_request, { params }) {
   }
 
   await connectToDatabase();
-  const project = await Project.findOneAndDelete({
-    _id: params.projectId,
-    workspaceId: current.workspace.id,
-  });
-
+  const project = await Project.findOne({ _id: params.projectId, workspaceId: current.workspace.id }).lean();
   if (!project) return NextResponse.json({ error: "پروژه پیدا نشد." }, { status: 404 });
-  // do not leave orphan tasks behind
-  await Task.deleteMany({ projectId: project._id, workspaceId: current.workspace.id });
+
+  // Children first, the project itself last: if something fails half way the project still exists and the
+  // delete can simply be repeated (nothing is left without an owner).
+  try {
+    await deleteProjectData(current.workspace.id, project);
+    await Project.deleteOne({ _id: project._id, workspaceId: current.workspace.id });
+  } catch (error) {
+    console.error("PROJECT_DELETE_ERROR", error);
+    return NextResponse.json({ error: "حذف کامل پروژه انجام نشد. دوباره تلاش کنید." }, { status: 500 });
+  }
   await logActivity(current, { type: "project.deleted", entityType: "project", entityId: project._id, entityTitle: project.name, project });
   return NextResponse.json({ ok: true });
 }

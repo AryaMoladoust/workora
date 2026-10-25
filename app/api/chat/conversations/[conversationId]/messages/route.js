@@ -19,6 +19,7 @@ import {
 import ChatMessage from "../../../../../../database/models/ChatMessage";
 import Conversation from "../../../../../../database/models/Conversation";
 import ConversationRead from "../../../../../../database/models/ConversationRead";
+import { limitUser } from "../../../../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
@@ -43,6 +44,10 @@ export async function GET(request, { params }) {
   await connectToDatabase();
 
   const q = searchParams.get("q");
+  if (q !== null) {
+    const searchLimited = await limitUser(current, "chat:search");
+    if (searchLimited) return searchLimited;
+  }
   if (q !== null) return NextResponse.json({ results: await searchMessages(access.conversation._id, q, current.user.id) });
 
   const around = searchParams.get("around");
@@ -87,6 +92,8 @@ export async function POST(request, { params }) {
   params = await params;
   const current = await getCurrentUser();
   if (!current) return bad("احراز هویت لازم است.", 401);
+  const limited = await limitUser(current, "chat:send");
+  if (limited) return limited;
 
   const access = await conversationAccess(current, params.conversationId);
   if (!access) return bad("گفتگو پیدا نشد.", 404);

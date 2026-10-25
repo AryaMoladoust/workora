@@ -3,6 +3,7 @@ import { connectToDatabase } from "../../../lib/db";
 import { getCurrentUser } from "../../../lib/auth";
 import { validateName } from "../../../lib/validation";
 import User from "../../../database/models/User";
+import { limitUser } from "../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
@@ -10,6 +11,8 @@ export const runtime = "nodejs";
 export async function PATCH(request) {
   const current = await getCurrentUser();
   if (!current) return NextResponse.json({ error: "احراز هویت لازم است." }, { status: 401 });
+  const limited = await limitUser(current, "profile");
+  if (limited) return limited;
 
   const body = await request.json().catch(() => ({}));
   const firstName = String(body.firstName ?? current.user.firstName).trim();

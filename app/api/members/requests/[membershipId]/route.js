@@ -7,6 +7,7 @@ import { logActivity } from "../../../../../lib/activity";
 import { mailConfigured, sendApprovalEmail } from "../../../../../lib/mail";
 import User from "../../../../../database/models/User";
 import Membership from "../../../../../database/models/Membership";
+import { limitUser } from "../../../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
@@ -15,6 +16,8 @@ export async function PATCH(request, { params }) {
   params = await params;
   const current = await getCurrentUser();
   if (!current) return NextResponse.json({ error: "احراز هویت لازم است." }, { status: 401 });
+  const limited = await limitUser(current, "member");
+  if (limited) return limited;
   if (!hasPermission(current, "members.manage")) {
     return NextResponse.json({ error: "اجازه بررسی درخواست‌ها را ندارید." }, { status: 403 });
   }

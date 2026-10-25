@@ -6,6 +6,7 @@ import { assigneeError, commentCountsFor, serializeTask } from "../../../../../l
 import { logActivity, notify, userNameMap } from "../../../../../lib/activity";
 import { parseOptionalDate } from "../../../../../lib/validation";
 import Task, { TASK_PRIORITIES, TASK_STATUSES } from "../../../../../database/models/Task";
+import { limitUser } from "../../../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
@@ -33,6 +34,8 @@ export async function POST(request, { params }) {
   params = await params;
   const current = await getCurrentUser();
   if (!current) return NextResponse.json({ error: "احراز هویت لازم است." }, { status: 401 });
+  const limited = await limitUser(current, "task:create");
+  if (limited) return limited;
 
   const project = await findAccessibleProject(current, params.projectId);
   if (!project) return NextResponse.json({ error: "پروژه پیدا نشد." }, { status: 404 });
