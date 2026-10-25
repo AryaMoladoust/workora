@@ -39,11 +39,16 @@ export function DashboardSkeleton() {
 /* ---------------------------------------------------------------- projects */
 export function ProjectCardSkeleton({ i = 0 }) {
   return (
-    <div className="project-card" aria-hidden="true">
-      <div className="project-card-top"><Sk w={44} h={44} r={14} d={i} /><Sk w={60} h={24} r={999} d={i} /></div>
-      <SkLines widths={[70, 100, 82]} h={13} d={i} />
-      <span className="sk-stack" style={{ gap: 8 }}><Sk w="100%" h={8} r={999} d={i} /><Sk w={120} h={10} d={i + 1} /></span>
-      <div className="project-card-foot"><span className="sk-row">{[0, 1, 2].map((k) => <Sk key={k} w={30} h={30} circle d={i + k} />)}</span><Sk w={70} h={12} d={i} /></div>
+    <div className="pfolder pfolder-sk" aria-hidden="true">
+      <span className="pfolder-back" />
+      <span className="pfolder-tab" />
+      <div className="pfolder-front">
+        <Sk w={64} h={22} r={999} d={i} />
+        <Sk w="62%" h={18} d={i} />
+        <Sk w="40%" h={12} d={i + 1} />
+        <Sk w="100%" h={6} r={999} d={i} />
+        <div className="pfolder-foot"><Sk w={40} h={40} circle d={i} /><Sk w={86} h={30} r={999} d={i + 1} /></div>
+      </div>
     </div>
   );
 }
