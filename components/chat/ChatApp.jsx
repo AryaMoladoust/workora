@@ -201,7 +201,7 @@ export default function ChatApp({ me, initialProjects, initialGroups = [], initi
     return (
       <li key={c.id}>
         <button type="button" className={`conv ${c.id === activeId ? "is-active" : ""}`} onClick={() => setActiveId(c.id)}>
-          <ChatAvatar id={c.userId || c.projectId || c.id} name={c.title} kind={c.kind} online={Boolean(c.online)} />
+          <ChatAvatar id={c.userId || c.projectId || c.id} name={c.title} kind={c.kind} online={Boolean(c.online)} src={c.avatarUrl} />
           <span className="conv-main">
             <span className="conv-top">
               <strong>{c.title}</strong>
@@ -314,7 +314,7 @@ export default function ChatApp({ me, initialProjects, initialGroups = [], initi
               return (
                 <li key={p.userId}>
                   <button type="button" className={`picker-row${on ? " is-checked" : ""}`} aria-pressed={on} onClick={() => togglePicked(p.userId)}>
-                    <ChatAvatar id={p.userId} name={`${p.firstName} ${p.lastName}`} size="sm" />
+                    <ChatAvatar id={p.userId} name={`${p.firstName} ${p.lastName}`} size="sm" src={p.avatarUrl} />
                     <span className="picker-name">{p.firstName} {p.lastName}</span>
                     <span className="picker-check" aria-hidden="true">{on && <Icon name="check" size={14} strokeWidth={3} />}</span>
                   </button>
@@ -341,7 +341,7 @@ export default function ChatApp({ me, initialProjects, initialGroups = [], initi
           {shownPeople.map((p) => (
             <li key={p.userId}>
               <button type="button" className="picker-row" onClick={() => startDirect(p)}>
-                <ChatAvatar id={p.userId} name={`${p.firstName} ${p.lastName}`} size="sm" />
+                <ChatAvatar id={p.userId} name={`${p.firstName} ${p.lastName}`} size="sm" src={p.avatarUrl} />
                 <span className="picker-name">{p.firstName} {p.lastName}</span>
               </button>
             </li>

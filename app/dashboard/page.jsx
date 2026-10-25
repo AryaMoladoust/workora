@@ -14,11 +14,8 @@ export default async function DashboardPage() {
   return (
     <>
       <DashboardView
-        user={current.user}
-        role={current.membership.role}
         firstName={current.user.firstName}
         data={data}
-        profileSummary={profileSummary}
         canManageProjects={hasPermission(current, "projects.manage")}
       />
       {/* first login: a friendly, fully skippable wizard that fills in the profile */}

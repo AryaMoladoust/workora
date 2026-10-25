@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Icon from "../ui/Icon";
+import Avatar from "../ui/Avatar";
 import Modal from "../ui/Modal";
 import { useConfirm } from "../ui/Feedback";
 import { PERMISSIONS } from "../../lib/permissions";
@@ -218,7 +220,7 @@ export default function MembersManager({ members, canManage, currentUserId, gran
           {visible.map((m) => (
             <article key={m.membershipId} className={`member-card ${m.isActive ? "" : "is-inactive"}`}>
               <div className="member-top">
-                <span className="avatar avatar-lg" style={{ "--h": hueFromString(m.userId) }}>{initials(m.firstName, m.lastName)}</span>
+                <Link href={m.userId === currentUserId ? "/profile" : `/profile/${m.userId}`} aria-label={`پروفایل ${m.firstName} ${m.lastName}`}><Avatar user={{ id: m.userId, firstName: m.firstName, lastName: m.lastName, avatarUrl: m.avatarUrl }} size="lg" /></Link>
                 <div className="member-id">
                   <strong>{m.firstName} {m.lastName}</strong>
                   <small dir="ltr">{m.email}</small>
@@ -248,6 +250,7 @@ export default function MembersManager({ members, canManage, currentUserId, gran
 
               <footer className="member-foot">
                 {!m.isActive && <span className="chip chip-off">غیرفعال</span>}
+                <Link href={m.userId === currentUserId ? "/profile" : `/profile/${m.userId}`} className="secondary-button member-edit"><Icon name="user" size={15} />پروفایل</Link>
                 {canManage && (
                   <button type="button" className="secondary-button member-edit" onClick={() => openEdit(m)}>
                     ویرایش

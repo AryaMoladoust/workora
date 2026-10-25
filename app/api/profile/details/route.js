@@ -27,5 +27,5 @@ export async function PUT(request) {
   ).lean();
 
   const profile = serializeProfile(doc);
-  return NextResponse.json({ profile, completeness: completeness(profile, Boolean(current.user.avatarUrl)).percent });
+  return NextResponse.json({ profile, completeness: completeness(profile, Boolean(current.user.avatarUrl)) });
 }

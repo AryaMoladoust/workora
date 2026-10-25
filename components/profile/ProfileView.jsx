@@ -259,7 +259,7 @@ export default function ProfileView({ data }) {
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || "ذخیره انجام نشد.");
       setProfile(d.profile);
-      setCompleteness((c) => ({ ...c, percent: d.completeness }));
+      setCompleteness(d.completeness);
       toast.success("تغییرات ذخیره شد");
       done();
       router.refresh();
@@ -370,15 +370,23 @@ export default function ProfileView({ data }) {
         </div>
 
         <aside className="pf-side">
-          {isSelf && completeness.percent < 100 && (
-            <section className="card pf-card pf-complete">
-              <CompletenessRing percent={completeness.percent} />
-              <div>
-                <h3>پروفایل شما {fa(completeness.percent)}٪ کامل است</h3>
-                <ul>
-                  {completeness.steps.filter((s) => !s.done).slice(0, 4).map((s) => <li key={s.id}><Link href={s.href}>+ {s.label}</Link></li>)}
-                </ul>
+          {isSelf && (
+            <section className="card pf-card pf-complete" id="complete">
+              <div className="pf-complete-head">
+                <CompletenessRing percent={completeness.percent} />
+                <div>
+                  <h3>{completeness.percent >= 100 ? "پروفایل شما کامل است 🎉" : `پروفایل شما ${fa(completeness.percent)}٪ کامل است`}</h3>
+                  <p>{completeness.percent >= 100 ? "همکاران می‌توانند مهارت‌ها و سوابق شما را ببینند." : "با تکمیل موارد زیر، همکاران شما را بهتر می‌شناسند."}</p>
+                </div>
               </div>
+              <ul className="pf-checklist">
+                {completeness.steps.map((s) => (
+                  <li key={s.id} className={s.done ? "is-done" : ""}>
+                    <span className="pf-check"><Icon name={s.done ? "check" : "plus"} size={12} strokeWidth={3} /></span>
+                    {s.done ? <span>{s.label}</span> : <Link href={s.href}>{s.label}</Link>}
+                  </li>
+                ))}
+              </ul>
             </section>
           )}
 

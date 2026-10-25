@@ -7,17 +7,15 @@ import OtpVerify from "./OtpVerify";
 import PenLoader from "../loading/PenLoader";
 
 // mode "owner": first registration, creates the workspace.
-// mode "join": team member with an invite code (instant access).
 // mode "request": team member enters their (Gmail) e-mail and waits for the owner's approval.
-export default function RegisterForm({ mode: initialMode, needsKey = false, initialCode = "", canRequest = false, domainHint = "", mailEnabled = false }) {
+export default function RegisterForm({ mode: initialMode, needsKey = false, canRequest = false, domainHint = "", mailEnabled = false }) {
   const router = useRouter();
   const [mode, setMode] = useState(initialMode);
   const [step, setStep] = useState("form"); // request mode: "form" → "verify" (4-digit code)
   const [resendIn, setResendIn] = useState(600);
-  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "", workspaceName: "", registrationKey: "", inviteCode: initialCode });
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "", workspaceName: "", registrationKey: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const isJoin = mode === "join";
   const isRequest = mode === "request";
   const emailLabel = isRequest && domainHint ? `ایمیل ${domainHint}` : "ایمیل";
 
@@ -28,8 +26,6 @@ export default function RegisterForm({ mode: initialMode, needsKey = false, init
     try {
       const payload = isRequest
         ? { signupRequest: true, firstName: form.firstName, lastName: form.lastName, email: form.email, password: form.password }
-        : isJoin
-        ? { firstName: form.firstName, lastName: form.lastName, email: form.email, password: form.password, inviteCode: form.inviteCode }
         : { firstName: form.firstName, lastName: form.lastName, email: form.email, password: form.password, workspaceName: form.workspaceName, registrationKey: form.registrationKey };
       const response = await fetch("/api/auth/register", {
         method: "POST",
@@ -73,22 +69,14 @@ export default function RegisterForm({ mode: initialMode, needsKey = false, init
           <img src="/logo.png" alt="" width="36" height="36" />
           Workora
         </span>
-        <h1>{isRequest ? "درخواست ثبت‌نام" : isJoin ? "ثبت‌نام در تیم" : "ساخت فضای کاری"}</h1>
+        <h1>{isRequest ? "درخواست ثبت‌نام" : "ساخت فضای کاری"}</h1>
         <p>
           {isRequest
             ? `ایمیل ${domainHint || ""} خودتان را وارد کنید. یک کد ۴ رقمی به آن ایمیل می‌فرستیم و بعد از تایید ایمیل، مالک فضای کاری درخواستتان را بررسی می‌کند.`
-            : isJoin
-            ? "کد دعوت را از مالک فضای کاری بگیرید و حساب خودتان را بسازید."
-            : "حساب مالک Workspace را ایجاد کنید. اعضای تیم با «کد دعوت» یا از بخش «اعضا» اضافه می‌شوند."}
+            : "حساب مالک Workspace را ایجاد کنید. اعضای تیم با «درخواست ثبت‌نام» یا از بخش «اعضا» اضافه می‌شوند."}
         </p>
         {error && <div className="auth-error" role="alert">{error}</div>}
 
-        {isJoin && (
-          <label>
-            کد دعوت
-            <input dir="ltr" className="code-input" placeholder="XXXXX-XXXXX" value={form.inviteCode} onChange={(e) => setForm({ ...form, inviteCode: e.target.value })} required />
-          </label>
-        )}
 
         <div className="auth-grid">
           <label>نام<input value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} required /></label>
@@ -98,7 +86,7 @@ export default function RegisterForm({ mode: initialMode, needsKey = false, init
           {emailLabel}
           <input type="email" dir="ltr" autoComplete="email" placeholder={isRequest && domainHint === "Gmail" ? "name@gmail.com" : undefined} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
         </label>
-        {!isJoin && !isRequest && (
+        {!isRequest && (
           <label>نام Workspace<input value={form.workspaceName} onChange={(e) => setForm({ ...form, workspaceName: e.target.value })} required /></label>
         )}
         <label>
@@ -106,20 +94,14 @@ export default function RegisterForm({ mode: initialMode, needsKey = false, init
           <input type="password" dir="ltr" autoComplete="new-password" minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
           <small>حداقل ۸ کاراکتر</small>
         </label>
-        {!isJoin && needsKey && (
+        {needsKey && (
           <label>
             کد دعوت سرور (REGISTRATION_KEY)
             <input dir="ltr" value={form.registrationKey} onChange={(e) => setForm({ ...form, registrationKey: e.target.value })} required />
             <small>مقداری که در تنظیمات Vercel گذاشته‌اید.</small>
           </label>
         )}
-        <button className="primary-button" disabled={loading}>{loading ? "در حال ارسال..." : isRequest ? "ارسال کد تایید" : isJoin ? "ثبت‌نام و ورود" : "ساخت Workspace"}</button>
-        {canRequest && isRequest && (
-          <button type="button" className="auth-link auth-link-button" onClick={() => { setError(""); setMode("join"); }}>کد دعوت دارید؟ ثبت‌نام با کد</button>
-        )}
-        {canRequest && isJoin && (
-          <button type="button" className="auth-link auth-link-button" onClick={() => { setError(""); setMode("request"); }}>کد دعوت ندارید؟ درخواست ثبت‌نام بدهید</button>
-        )}
+        <button className="primary-button" disabled={loading}>{loading ? "در حال ارسال..." : isRequest ? "ارسال کد تایید" : "ساخت Workspace"}</button>
         <Link href="/login" className="auth-link">قبلاً حساب ساخته‌اید؟ ورود</Link>
       </form>
       {loading && <PenLoader blocking delay={0.05} />}

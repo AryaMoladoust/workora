@@ -1879,3 +1879,24 @@ html[data-splash="off"] .splash { display: none !important; }
 .ob-body { display: grid; gap: 16px; }
 .ob-photo { display: flex; justify-content: center; padding: 6px 0 10px; }
 .ob-sub { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 800; margin-top: 4px; }
+
+/* chat: profile photos + links */
+.cav { overflow: visible; }
+.cav-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
+.cav-link { display: inline-flex; flex: none; text-decoration: none; border-radius: 50%; }
+.cav-link:hover .cav { filter: brightness(1.06); }
+.thread-title-link { color: inherit; text-decoration: none; }
+.thread-title-link:hover { text-decoration: underline; }
+
+/* profile completeness checklist (profile page) */
+.pf-complete { display: grid; gap: 14px; }
+.pf-complete-head { display: flex; align-items: center; gap: 14px; }
+.pf-complete-head p { color: var(--muted); font-size: 12.5px; margin-top: 4px; line-height: 1.8; }
+.pf-checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.pf-checklist li { display: flex; align-items: center; gap: 10px; font-size: 13.5px; }
+.pf-checklist a { color: var(--text); font-weight: 700; text-decoration: none; }
+.pf-checklist a:hover { color: var(--accent); }
+.pf-check { width: 20px; height: 20px; flex: none; display: grid; place-items: center; border-radius: 50%; border: 1.5px dashed var(--border); color: var(--muted); }
+.pf-checklist li.is-done { color: var(--muted); }
+.pf-checklist li.is-done .pf-check { border: 0; background: var(--accent); color: #fff; }
+.pf-hero .pf-cover-sk { border-radius: 0; }

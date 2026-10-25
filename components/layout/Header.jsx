@@ -4,7 +4,6 @@ import Link from "next/link";
 import Icon from "../ui/Icon";
 import NotificationBell from "../notifications/NotificationBell";
 import ThemeSwitcher from "./ThemeSwitcher";
-import UserMenu from "./UserMenu";
 import { titleForPath } from "./nav";
 
 export default function Header({ pathname, user, role, workspace, theme, mode, font, unread, setUnread, onMenu }) {
@@ -27,7 +26,6 @@ export default function Header({ pathname, user, role, workspace, theme, mode, f
       <div className="header-end">
         <ThemeSwitcher initialTheme={theme} initialMode={mode} initialFont={font} />
         <NotificationBell unread={unread} setUnread={setUnread} />
-        <UserMenu user={user} role={role} />
       </div>
     </header>
   );

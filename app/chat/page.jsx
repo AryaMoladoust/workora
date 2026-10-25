@@ -25,7 +25,7 @@ export default async function ChatPage({ searchParams }) {
       initialDirects={lists.directs}
       people={members
         .filter((m) => m.userId !== current.user.id)
-        .map(({ userId, firstName, lastName }) => ({ userId, firstName, lastName }))}
+        .map(({ userId, firstName, lastName, avatarUrl }) => ({ userId, firstName, lastName, avatarUrl }))}
       initialActiveId={exists ? requested : null}
     />
   );

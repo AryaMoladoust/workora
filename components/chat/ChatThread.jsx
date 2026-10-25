@@ -779,6 +779,7 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
 
   /* ------------------------------------------------ derived data */
   const people = useMemo(() => new Map(participants.map((p) => [p.id, p.name])), [participants]);
+  const avatars = useMemo(() => new Map(participants.filter((p) => p.avatarUrl).map((p) => [p.id, p.avatarUrl])), [participants]);
   const readTimes = useMemo(() => Object.entries(reads).filter(([id]) => id !== me.id).map(([, at]) => at), [reads, me.id]);
   const isSeen = (m) => readTimes.some((at) => at >= m.createdAt);
 
@@ -821,9 +822,9 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
             <Icon name="arrowLeft" size={18} />
           </button>
         )}
-        <ChatAvatar id={conversation.userId || conversation.projectId || conversation.id} name={conversation.title} kind={conversation.kind} size="lg" online={Boolean(otherPresence?.online)} />
+        <ChatAvatar id={conversation.userId || conversation.projectId || conversation.id} name={conversation.title} kind={conversation.kind} size="lg" online={Boolean(otherPresence?.online)} src={conversation.avatarUrl} href={conversation.kind === "direct" && conversation.userId ? `/profile/${conversation.userId}` : null} />
         <div className="thread-title">
-          <strong>{conversation.title}</strong>
+          <strong>{conversation.kind === "direct" && conversation.userId ? <Link href={`/profile/${conversation.userId}`} className="thread-title-link">{conversation.title}</Link> : conversation.title}</strong>
           <small className={otherPresence?.online ? "is-online" : ""}>
             {isGroup && conversation.projectId ? <Link href={`/projects/${conversation.projectId}`}>{subtitle}</Link> : subtitle}
           </small>
@@ -943,6 +944,7 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
                   showName={isGroup}
                   seen={item.message.authorId === me.id && isSeen(item.message)}
                   people={people}
+                  avatars={avatars}
                   menu={menu && menu.id === item.message.id ? menu : null}
                   toolsOn={toolsFor === item.message.id}
                   flash={flashId === item.message.id}
@@ -1027,7 +1029,7 @@ export default function ChatThread({ conversation, me, embedded = false, onBack,
               {mentionItems.map((p, i) => (
                 <li key={p.id}>
                   <button type="button" role="option" aria-selected={i === mention.index} className={i === mention.index ? "is-active" : ""} onMouseDown={(e) => e.preventDefault()} onClick={() => pickMention(p)}>
-                    <ChatAvatar id={p.id} name={p.name} size="sm" online={Boolean(presence[p.id]?.online)} />
+                    <ChatAvatar id={p.id} name={p.name} size="sm" online={Boolean(presence[p.id]?.online)} src={p.avatarUrl} />
                     <span>{p.name}</span>
                   </button>
                 </li>
@@ -1081,7 +1083,7 @@ const SWIPE_TRIGGER = 64; // px the finger must travel to the right to start a r
 const SWIPE_MAX = 90;
 
 function Message({
-  message, grouped, groupedNext, mine, meId, showName, seen, people, menu, toolsOn, flash,
+  message, grouped, groupedNext, mine, meId, showName, seen, people, avatars, menu, toolsOn, flash,
   onToggleTools, onOpenMenu, onReact, onReply, onEdit, onPin, onCopy, onDelete, onRetry, onJump,
 }) {
   const bubbleRef = useRef(null);
@@ -1159,7 +1161,7 @@ function Message({
 
   return (
     <div className={`${cls} ${message.pending ? "is-pending" : ""} ${toolsOn || menu ? "is-tools" : ""}`} data-mid={message.id}>
-      {!mine && <span className="msg-avatar">{!groupedNext && <ChatAvatar id={message.authorId} name={message.authorName} size="sm" />}</span>}
+      {!mine && <span className="msg-avatar">{!groupedNext && <ChatAvatar id={message.authorId} name={message.authorName} size="sm" src={avatars.get(message.authorId)} href={`/profile/${message.authorId}`} />}</span>}
       <div className="msg-col">
         {!mine && showName && !grouped && <small className="msg-author">{message.authorName}</small>}
         <div className="bubble-wrap">

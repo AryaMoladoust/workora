@@ -163,7 +163,6 @@ export function MembersSkeleton() {
     <div className="page-shell" aria-busy="true">
       <SkStatus />
       <SkHeading />
-      <SkCard className="invite-card"><span className="sk-row"><Sk w={32} h={32} r={10} /><Sk w={220} h={16} d={1} /></span><Sk w={220} h={52} r={14} d={1} /></SkCard>
       <SkToolbar tabs={3} />
       <div className="member-grid" aria-hidden="true">
         {Array.from({ length: 6 }, (_, i) => (
@@ -307,6 +306,54 @@ export function SettingsSkeleton() {
       <SkStatus />
       <SkHeading />
       <SkCard><Sk w={64} h={64} circle /><SkLines widths={[50, 80, 65]} h={14} /></SkCard>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- profile */
+export function ProfileSkeleton() {
+  return (
+    <div className="page-shell page-shell-wide" aria-busy="true">
+      <SkStatus />
+      <div className="pf-page" aria-hidden="true">
+        <section className="card pf-hero">
+          <Sk className="pf-cover-sk" w="100%" h={168} r={0} />
+          <div className="pf-hero-body">
+            <div className="pf-hero-photo"><Sk w={112} h={112} circle /></div>
+            <div className="pf-hero-main">
+              <span className="sk-stack" style={{ gap: 10 }}>
+                <Sk w={220} h={26} d={1} />
+                <Sk w={300} h={16} d={2} />
+                <Sk w={180} h={12} d={3} />
+              </span>
+              <Sk w={140} h={42} r={12} d={2} />
+            </div>
+          </div>
+        </section>
+        <div className="pf-grid">
+          <div className="pf-main">
+            <SkCard><SkCardHead /><SkLines widths={[100, 94, 70]} h={13} /></SkCard>
+            <SkCard>
+              <SkCardHead />
+              <div className="sk-row">{[90, 120, 80, 110, 100].map((w, i) => <Sk key={i} w={w} h={30} r={999} d={i} />)}</div>
+            </SkCard>
+            <SkCard>
+              <SkCardHead />
+              {[0, 1].map((i) => (
+                <div className="sk-row" key={i} style={{ alignItems: "flex-start", marginTop: 16 }}>
+                  <Sk w={40} h={40} r={13} d={i} />
+                  <span className="sk-stack" style={{ flex: 1, gap: 8 }}><Sk w="50%" h={15} d={i} /><Sk w="35%" h={12} d={i} /><SkLines widths={[90, 60]} h={11} /></span>
+                </div>
+              ))}
+            </SkCard>
+          </div>
+          <div className="pf-side">
+            <SkCard><div className="sk-row"><Sk w={76} h={76} circle /><span className="sk-stack" style={{ flex: 1, gap: 8 }}><SkLines widths={[90, 60]} h={13} /></span></div></SkCard>
+            <SkCard><SkCardHead /><div className="sk-row">{[0, 1, 2].map((i) => <Sk key={i} w={86} h={72} r={16} d={i} />)}</div></SkCard>
+            <SkCard><SkCardHead /><SkLines widths={[100, 100, 100]} h={36} /></SkCard>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
