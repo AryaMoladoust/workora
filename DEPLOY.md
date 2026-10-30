@@ -103,3 +103,13 @@ Atlas → منوی چپ **Database → Data Explorer** (یا Clusters → Browse
 
 ## بعد از دیپلوی این نسخه
 `/api/setup?token=TOKEN` را یک‌بار باز کنید تا ایندکس یکتای `emailKey` ساخته و ایمیل‌های قدیمی پر شود. اگر `emailKeys.duplicates` خالی نبود، حساب‌های تکراری را دستی ادغام کنید.
+
+## یادآوری مهلت وظایف (Cron روزانه)
+
+فایل `vercel.json` یک Cron روزانه را روی `/api/cron/reminders` تعریف می‌کند (ساعت ۰۵:۰۰ UTC، حدود ۰۸:۳۰ به وقت تهران؛ پلن Hobby فقط روزی یک بار اجازه می‌دهد و همین کافی است).
+
+1. در Vercel یک متغیر محیطی بسازید: `CRON_SECRET` = یک رشته‌ی تصادفی بلند (مثلاً `openssl rand -hex 32`).
+2. Redeploy کنید. Vercel خودش هنگام اجرای Cron هدر `Authorization: Bearer <CRON_SECRET>` را می‌فرستد؛ بدون آن مسیر `401` می‌دهد و اگر متغیر تنظیم نشده باشد `503`.
+3. تست دستی: `curl -H "Authorization: Bearer $CRON_SECRET" https://your-app.vercel.app/api/cron/reminders` → `{"ok":true,"checked":…,"due_soon":…,"overdue":…}`.
+
+هر یادآوری برای هر مهلت فقط یک بار فرستاده می‌شود (با تغییر مهلت دوباره فعال می‌شود). وظایف تکرارشونده به Cron نیاز ندارند: نسخه‌ی بعدی لحظه‌ی «انجام شد» ساخته می‌شود.

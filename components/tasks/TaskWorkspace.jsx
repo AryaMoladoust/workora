@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Icon from "../ui/Icon";
 import TaskCard, { Assignee } from "./TaskCard";
 import TaskModal from "./TaskModal";
+import TaskCalendar from "./TaskCalendar";
 import { PRIORITY_LABELS, STATUS_LABELS } from "../../lib/format";
 import { canEditTask } from "../../lib/task-rules";
 
@@ -22,6 +23,15 @@ function sortTasks(a, b) {
   if (a.dueAt) return -1;
   if (b.dueAt) return 1;
   return new Date(b.createdAt) - new Date(a.createdAt);
+}
+
+// when a task changes, the tasks that wait for it are unlocked / locked again
+function syncBlockers(list, changed) {
+  return list.map((t) => {
+    if (!t.blockers?.some((b) => b.id === changed.id)) return t;
+    const blockers = t.blockers.map((b) => (b.id === changed.id ? { ...b, title: changed.title, done: changed.status === "done" } : b));
+    return { ...t, blockers, blocked: t.status !== "done" && blockers.some((b) => !b.done) };
+  });
 }
 
 function groupOf(task) {
@@ -48,6 +58,7 @@ export default function TaskWorkspace({ layout, initialTasks, projects, people, 
   const [priority, setPriority] = useState("all");
   const [assignee, setAssignee] = useState("all");
   const [overdueOnly, setOverdueOnly] = useState(false);
+  const [label, setLabel] = useState("all");
   const [modal, setModal] = useState(() => (openTaskId && initialTasks.some((t) => t.id === openTaskId) ? { mode: "edit", id: openTaskId } : null));
   const [error, setError] = useState("");
   const [dragOver, setDragOver] = useState(null);
@@ -66,24 +77,40 @@ export default function TaskWorkspace({ layout, initialTasks, projects, people, 
         if (assignee === "none" && t.assigneeId) return false;
         if (assignee !== "all" && assignee !== "me" && assignee !== "none" && t.assigneeId !== assignee) return false;
         if (overdueOnly && !(t.status !== "done" && t.dueTone === "overdue")) return false;
+        if (label !== "all" && !(t.labels || []).some((l) => l.name === label)) return false;
         return true;
       })
       .sort(sortTasks);
-  }, [tasks, q, priority, assignee, overdueOnly, ctx.userId]);
+  }, [tasks, q, priority, assignee, overdueOnly, label, ctx.userId]);
 
-  const filtersActive = q || priority !== "all" || assignee !== "all" || overdueOnly;
+  // label names used by the loaded tasks (labels are per project; the same name in two projects is one filter)
+  const labelOptions = useMemo(() => {
+    const seen = new Map();
+    for (const t of tasks) for (const l of t.labels || []) if (!seen.has(l.name)) seen.set(l.name, l.color);
+    return [...seen.entries()];
+  }, [tasks]);
+
+  const filtersActive = q || priority !== "all" || assignee !== "all" || overdueOnly || label !== "all";
   const editingTask = modal?.mode === "edit" ? tasks.find((t) => t.id === modal.id) : null;
 
-  function upsert(task, isNew) {
+  // `spawned`: the next copy of a repeating task that was just finished
+  function upsert(task, isNew, spawned) {
     setTasks((list) => {
-      if (isNew) return [{ commentCount: 0, ...task }, ...list];
-      return list.map((t) => (t.id === task.id ? { ...t, ...task } : t));
+      let next = isNew ? [{ commentCount: 0, ...task }, ...list] : list.map((t) => (t.id === task.id ? { ...t, ...task } : t));
+      next = syncBlockers(next, task);
+      if (spawned) next = [{ commentCount: 0, ...spawned }, ...next];
+      return next;
     });
   }
 
   async function move(task, status) {
     if (task.status === status) return;
     setError("");
+    if (task.blocked && status !== "todo") {
+      const waiting = task.blockers.filter((b) => !b.done).map((b) => `«${b.title}»`).join("، ");
+      setError(`این وظیفه منتظر ${waiting} است؛ اول آن را انجام دهید.`);
+      return;
+    }
     const before = tasks;
     setTasks((list) => list.map((t) => (t.id === task.id ? { ...t, status, dueTone: status === "done" ? "none" : t.dueTone } : t)));
     try {
@@ -94,7 +121,7 @@ export default function TaskWorkspace({ layout, initialTasks, projects, people, 
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "تغییر وضعیت انجام نشد.");
-      upsert(data.task, false);
+      upsert(data.task, false, data.spawned);
     } catch (err) {
       setTasks(before);
       setError(err.message);
@@ -172,6 +199,10 @@ export default function TaskWorkspace({ layout, initialTasks, projects, people, 
             <strong>{task.title}</strong>
             {layout !== "project" && task.projectName && <small>{task.projectName}</small>}
           </span>
+          {(task.labels || []).slice(0, 2).map((l) => <span key={l.id} className="label-chip is-static" style={{ "--lc": l.color }}>{l.name}</span>)}
+          {task.progress?.total > 0 && <span className="lrow-steps" title="چک‌لیست">{task.progress.done.toLocaleString("fa-IR")}/{task.progress.total.toLocaleString("fa-IR")}</span>}
+          {task.blocked && <span className="badge-blocked" title="منتظر انجام پیش‌نیازها"><Icon name="lock" size={12} />منتظر</span>}
+          {task.recurrence && <span className="tcard-repeat" title="وظیفه‌ی تکرارشونده"><Icon name="repeat" size={13} /></span>}
           {task.commentCount > 0 && <span className="tcard-comments"><Icon name="chat" size={13} />{task.commentCount.toLocaleString("fa-IR")}</span>}
           <span className={`chip chip-${task.status}`}>{STATUS_LABELS[task.status]}</span>
           <span className={`due due-${task.dueTone}`}>
@@ -246,27 +277,36 @@ export default function TaskWorkspace({ layout, initialTasks, projects, people, 
             <option key={p.userId} value={p.userId}>{p.firstName} {p.lastName}</option>
           ))}
         </select>
+        {labelOptions.length > 0 && (
+          <select className="tw-select" value={label} onChange={(e) => setLabel(e.target.value)} aria-label="برچسب">
+            <option value="all">همه برچسب‌ها</option>
+            {labelOptions.map(([name]) => <option key={name} value={name}>{name}</option>)}
+          </select>
+        )}
         <button type="button" className={`toggle-chip ${overdueOnly ? "is-on" : ""}`} onClick={() => setOverdueOnly(!overdueOnly)} aria-pressed={overdueOnly}>
           <Icon name="alert" size={15} />
           عقب‌افتاده
         </button>
         {filtersActive && (
-          <button type="button" className="link-button" onClick={() => { setQ(""); setPriority("all"); setAssignee("all"); setOverdueOnly(false); }}>
+          <button type="button" className="link-button" onClick={() => { setQ(""); setPriority("all"); setAssignee("all"); setOverdueOnly(false); setLabel("all"); }}>
             پاک کردن فیلترها
           </button>
         )}
 
         <div className="tw-actions">
-          {layout === "project" && (
-            <div className="view-toggle" role="tablist" aria-label="نوع نمایش">
+          <div className="view-toggle" role="tablist" aria-label="نوع نمایش">
+            {layout === "project" && (
               <button type="button" role="tab" aria-selected={view === "board"} className={view === "board" ? "is-active" : ""} onClick={() => setView("board")}>
                 <Icon name="dashboard" size={16} />کانبان
               </button>
-              <button type="button" role="tab" aria-selected={view === "list"} className={view === "list" ? "is-active" : ""} onClick={() => setView("list")}>
-                <Icon name="menu" size={16} />لیست
-              </button>
-            </div>
-          )}
+            )}
+            <button type="button" role="tab" aria-selected={view === "list"} className={view === "list" ? "is-active" : ""} onClick={() => setView("list")}>
+              <Icon name="menu" size={16} />لیست
+            </button>
+            <button type="button" role="tab" aria-selected={view === "calendar"} className={view === "calendar" ? "is-active" : ""} onClick={() => setView("calendar")}>
+              <Icon name="calendar" size={16} />تقویم
+            </button>
+          </div>
           {canCreate && (
             <button type="button" className="primary-button" onClick={() => setModal({ mode: "create" })}>
               <Icon name="plus" size={18} />
@@ -284,6 +324,8 @@ export default function TaskWorkspace({ layout, initialTasks, projects, people, 
           <p>{canCreate ? "اولین وظیفه را بسازید؛ می‌توانید آن را به خودتان یا هر عضو پروژه بسپارید." : "وقتی وظیفه‌ای ثبت یا به شما سپرده شود، اینجا نمایش داده می‌شود."}</p>
           {canCreate && <button type="button" className="primary-button" onClick={() => setModal({ mode: "create" })}>ساخت وظیفه</button>}
         </div>
+      ) : view === "calendar" ? (
+        <TaskCalendar tasks={filtered} onOpen={(t) => setModal({ mode: "edit", id: t.id })} />
       ) : view === "board" ? (
         renderBoard()
       ) : (
@@ -295,6 +337,7 @@ export default function TaskWorkspace({ layout, initialTasks, projects, people, 
           mode="create"
           presetStatus={modal.status}
           projects={projects}
+          projectTasks={tasks}
           people={people}
           fixedProjectId={fixedProjectId}
           ctx={ctx}
@@ -310,12 +353,23 @@ export default function TaskWorkspace({ layout, initialTasks, projects, people, 
           mode="edit"
           task={editingTask}
           projects={projects}
+          projectTasks={tasks}
           people={people}
           fixedProjectId={fixedProjectId}
           ctx={ctx}
           onClose={() => setModal(null)}
           onSaved={upsert}
-          onDeleted={(id) => setTasks((list) => list.filter((t) => t.id !== id))}
+          onDeleted={(id) =>
+            setTasks((list) =>
+              list
+                .filter((t) => t.id !== id)
+                .map((t) => {
+                  if (!t.blockers?.some((b) => b.id === id)) return t;
+                  const blockers = t.blockers.filter((b) => b.id !== id);
+                  return { ...t, blockers, blockedBy: t.blockedBy.filter((x) => x !== id), blocked: t.status !== "done" && blockers.some((b) => !b.done) };
+                })
+            )
+          }
           onCommentDelta={commentDelta}
         />
       )}

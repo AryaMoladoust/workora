@@ -5,6 +5,7 @@ import { getProjectForPage } from "../../../../lib/project-access";
 import { toDateInput } from "../../../../lib/format";
 import ProjectForm from "../../../../components/projects/ProjectForm";
 import DeleteProject from "../../../../components/projects/DeleteProject";
+import LabelsManager from "../../../../components/projects/LabelsManager";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ export default async function ProjectSettingsPage({ params }) {
         }}
         members={[]}
       />
+      <LabelsManager projectId={String(project._id)} initial={(project.labels || []).map((l) => ({ id: l.id, name: l.name, color: l.color }))} />
       <DeleteProject projectId={String(project._id)} projectName={project.name} />
     </div>
   );

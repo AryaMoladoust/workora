@@ -47,6 +47,11 @@ const projectSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // labels of this project's tasks (e.g. "urgent", "bug", "design"); tasks store only the ids
+    labels: {
+      type: [{ _id: false, id: { type: String, required: true }, name: { type: String, trim: true, maxlength: 30 }, color: { type: String, maxlength: 9 } }],
+      default: undefined,
+    },
   },
   {
     timestamps: true,

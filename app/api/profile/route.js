@@ -7,7 +7,7 @@ import { limitUser } from "../../../lib/user-limit";
 
 export const runtime = "nodejs";
 
-// PATCH { firstName, lastName, phone } – the signed-in user edits their own profile.
+// PATCH { firstName, lastName, phone, hideLastSeen } – the signed-in user edits their own profile.
 export async function PATCH(request) {
   const current = await getCurrentUser();
   if (!current) return NextResponse.json({ error: "احراز هویت لازم است." }, { status: 401 });
@@ -24,7 +24,11 @@ export async function PATCH(request) {
     return NextResponse.json({ error: "شماره تلفن معتبر نیست." }, { status: 400 });
   }
 
+  const $set = { firstName, lastName, phone: phone || null };
+  // privacy: only changed when the form actually sends it
+  if (body.hideLastSeen !== undefined) $set.hideLastSeen = Boolean(body.hideLastSeen);
+
   await connectToDatabase();
-  await User.updateOne({ _id: current.user.id }, { $set: { firstName, lastName, phone: phone || null } });
-  return NextResponse.json({ ok: true, firstName, lastName, phone });
+  await User.updateOne({ _id: current.user.id }, { $set });
+  return NextResponse.json({ ok: true, firstName, lastName, phone, hideLastSeen: $set.hideLastSeen });
 }

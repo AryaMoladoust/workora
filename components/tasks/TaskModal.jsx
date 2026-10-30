@@ -1,14 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Icon from "../ui/Icon";
 import Modal from "../ui/Modal";
 import Comments from "./Comments";
 import { PRIORITY_LABELS, STATUS_LABELS } from "../../lib/format";
 import { canDeleteTask, canEditTask } from "../../lib/task-rules";
 import JalaliDateInput from "../ui/JalaliDateInput";
+import { BLOCKERS_MAX, CHECKLIST_MAX, RECURRENCE_LABELS, RECURRENCE_UNITS } from "../../lib/task-constants";
 
 // mode "create": new task. mode "edit": detail view (editable when the user is allowed to).
-export default function TaskModal({ mode, task, presetStatus, projects, people, fixedProjectId, ctx, onClose, onSaved, onDeleted, onCommentDelta }) {
+export default function TaskModal({ mode, task, presetStatus, projects, people, projectTasks = [], fixedProjectId, ctx, onClose, onSaved, onDeleted, onCommentDelta }) {
   const isEdit = mode === "edit";
   const editable = isEdit ? canEditTask(ctx, task) : true;
   const deletable = isEdit && canDeleteTask(ctx, task);
@@ -23,7 +25,12 @@ export default function TaskModal({ mode, task, presetStatus, projects, people, 
     assigneeId: isEdit ? task.assigneeId || "" : ctx.userId,
     startAt: task?.startInput || "",
     dueAt: task?.dueInput || "",
+    checklist: (task?.checklist || []).map((i) => ({ ...i })),
+    labelIds: task?.labelIds || [],
+    recurrence: task?.recurrence || null,
+    blockedBy: task?.blockedBy || [],
   });
+  const [newStep, setNewStep] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -37,8 +44,29 @@ export default function TaskModal({ mode, task, presetStatus, projects, people, 
   function setProject(projectId) {
     const next = projects.find((p) => p.id === projectId);
     const stillMember = next?.memberIds.includes(form.assigneeId);
-    setForm({ ...form, projectId, assigneeId: stillMember ? form.assigneeId : "" });
+    // labels and prerequisites belong to one project
+    setForm({ ...form, projectId, assigneeId: stillMember ? form.assigneeId : "", labelIds: [], blockedBy: [] });
   }
+
+  /* ---- checklist */
+  const setStep = (i, patch) => setForm((f) => ({ ...f, checklist: f.checklist.map((s, idx) => (idx === i ? { ...s, ...patch } : s)) }));
+  function addStep() {
+    const text = newStep.trim();
+    if (!text || form.checklist.length >= CHECKLIST_MAX) return;
+    setForm((f) => ({ ...f, checklist: [...f.checklist, { text, done: false }] }));
+    setNewStep("");
+  }
+  const stepsDone = form.checklist.filter((s) => s.done).length;
+
+  /* ---- labels / prerequisites */
+  const projectLabels = project?.labels || [];
+  const toggleLabel = (id) => setForm((f) => ({ ...f, labelIds: f.labelIds.includes(id) ? f.labelIds.filter((x) => x !== id) : [...f.labelIds, id] }));
+  const known = useMemo(() => {
+    const m = new Map((task?.blockers || []).map((b) => [b.id, { title: b.title, done: b.done }]));
+    for (const t of projectTasks) m.set(t.id, { title: t.title, done: t.status === "done" });
+    return m;
+  }, [task, projectTasks]);
+  const blockerChoices = projectTasks.filter((t) => t.projectId === form.projectId && t.id !== task?.id && !form.blockedBy.includes(t.id));
 
   async function submit(event) {
     event.preventDefault();
@@ -54,6 +82,10 @@ export default function TaskModal({ mode, task, presetStatus, projects, people, 
         assigneeId: form.assigneeId || null,
         startAt: form.startAt || null,
         dueAt: form.dueAt || null,
+        checklist: form.checklist,
+        labelIds: form.labelIds,
+        recurrence: form.recurrence,
+        blockedBy: form.blockedBy,
       };
       const url = isEdit
         ? `/api/projects/${task.projectId}/tasks/${task.id}`
@@ -65,7 +97,7 @@ export default function TaskModal({ mode, task, presetStatus, projects, people, 
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "ذخیره وظیفه انجام نشد.");
-      onSaved(data.task, !isEdit);
+      onSaved(data.task, !isEdit, data.spawned);
       onClose();
     } catch (err) {
       setError(err.message);
@@ -169,6 +201,90 @@ export default function TaskModal({ mode, task, presetStatus, projects, people, 
             مهلت
             <JalaliDateInput value={form.dueAt} min={form.startAt || undefined} onChange={(v) => setForm({ ...form, dueAt: v })} disabled={!editable} />
           </label>
+        </div>
+
+        <div className="field-wide task-extra">
+          <span className="field-label">چک‌لیست{form.checklist.length > 0 && <small> · {stepsDone.toLocaleString("fa-IR")} از {form.checklist.length.toLocaleString("fa-IR")}</small>}</span>
+          {form.checklist.length > 0 && (
+            <div className="mini-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((stepsDone / form.checklist.length) * 100)}>
+              <span style={{ width: `${(stepsDone / form.checklist.length) * 100}%` }} />
+            </div>
+          )}
+          <ul className="cl-list">
+            {form.checklist.map((s, i) => (
+              <li key={i} className={s.done ? "is-done" : ""}>
+                <input type="checkbox" checked={s.done} disabled={!editable} aria-label="انجام شد" onChange={(e) => setStep(i, { done: e.target.checked })} />
+                <input className="cl-text" value={s.text} maxLength={200} disabled={!editable} onChange={(e) => setStep(i, { text: e.target.value })} />
+                {editable && (
+                  <button type="button" className="icon-button" aria-label="حذف مرحله" onClick={() => setForm((f) => ({ ...f, checklist: f.checklist.filter((_, idx) => idx !== i) }))}>
+                    <Icon name="close" size={14} />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+          {editable && form.checklist.length < CHECKLIST_MAX && (
+            <div className="input-with-action">
+              <input value={newStep} maxLength={200} placeholder="مرحله‌ی جدید، مثلاً «بررسی»..." onChange={(e) => setNewStep(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addStep(); } }} />
+              <button type="button" className="secondary-button" onClick={addStep}>افزودن</button>
+            </div>
+          )}
+        </div>
+
+        {projectLabels.length > 0 && (
+          <div className="field-wide task-extra">
+            <span className="field-label">برچسب‌ها</span>
+            <div className="label-picker">
+              {projectLabels.map((l) => (
+                <button type="button" key={l.id} disabled={!editable} className={`label-chip ${form.labelIds.includes(l.id) ? "is-on" : ""}`} style={{ "--lc": l.color }} aria-pressed={form.labelIds.includes(l.id)} onClick={() => toggleLabel(l.id)}>
+                  {l.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="field-wide task-extra rec-edit">
+          <span className="field-label"><Icon name="repeat" size={14} /> تکرار</span>
+          <div className="rec-row">
+            <select aria-label="تکرار" value={form.recurrence?.every || ""} disabled={!editable} onChange={(e) => setForm({ ...form, recurrence: e.target.value ? { every: e.target.value, interval: form.recurrence?.interval || 1 } : null })}>
+              <option value="">تکرار نمی‌شود</option>
+              {Object.entries(RECURRENCE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+            {form.recurrence && (
+              <label className="rec-interval">
+                هر
+                <input type="number" min={1} max={30} value={form.recurrence.interval} disabled={!editable} onChange={(e) => setForm({ ...form, recurrence: { ...form.recurrence, interval: Math.min(30, Math.max(1, Number(e.target.value) || 1)) } })} />
+                {RECURRENCE_UNITS[form.recurrence.every]}
+              </label>
+            )}
+          </div>
+          {form.recurrence && <p className="field-hint">{form.dueAt ? "وقتی این وظیفه انجام شد، نسخه‌ی بعدی با مهلت جدید ساخته می‌شود." : "برای تکرار باید مهلت را مشخص کنید."}</p>}
+        </div>
+
+        <div className="field-wide task-extra">
+          <span className="field-label"><Icon name="lock" size={14} /> پیش‌نیازها <small>· این وظیفه بعد از انجام این‌ها شروع می‌شود</small></span>
+          {form.blockedBy.length > 0 && (
+            <ul className="blocker-list">
+              {form.blockedBy.map((id) => {
+                const b = known.get(id) || { title: "وظیفه", done: false };
+                return (
+                  <li key={id} className={b.done ? "is-done" : ""}>
+                    <Icon name={b.done ? "check" : "clock"} size={14} />
+                    <span>{b.title}</span>
+                    {editable && <button type="button" className="icon-button" aria-label="حذف پیش‌نیاز" onClick={() => setForm((f) => ({ ...f, blockedBy: f.blockedBy.filter((x) => x !== id) }))}><Icon name="close" size={14} /></button>}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {editable && form.blockedBy.length < BLOCKERS_MAX && blockerChoices.length > 0 && (
+            <select aria-label="افزودن پیش‌نیاز" value="" onChange={(e) => e.target.value && setForm((f) => ({ ...f, blockedBy: [...f.blockedBy, e.target.value] }))}>
+              <option value="">+ افزودن پیش‌نیاز...</option>
+              {blockerChoices.map((t) => <option key={t.id} value={t.id}>{t.title}{t.status === "done" ? " (انجام‌شده)" : ""}</option>)}
+            </select>
+          )}
+          {form.blockedBy.length === 0 && blockerChoices.length === 0 && <p className="field-hint">وظیفه‌ی دیگری در این پروژه برای انتخاب نیست.</p>}
         </div>
 
         {!editable && <p className="field-hint field-wide">فقط سازنده، مسئول وظیفه و مدیران می‌توانند این وظیفه را ویرایش کنند.</p>}

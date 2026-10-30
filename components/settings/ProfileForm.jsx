@@ -6,7 +6,7 @@ import Icon from "../ui/Icon";
 
 export default function ProfileForm({ initial }) {
   const router = useRouter();
-  const [form, setForm] = useState({ firstName: initial.firstName, lastName: initial.lastName, phone: initial.phone || "" });
+  const [form, setForm] = useState({ firstName: initial.firstName, lastName: initial.lastName, phone: initial.phone || "", hideLastSeen: Boolean(initial.hideLastSeen) });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -39,6 +39,11 @@ export default function ProfileForm({ initial }) {
         <label>نام خانوادگی<input value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} required /></label>
         <label>ایمیل<input dir="ltr" value={initial.email} disabled /><small className="field-hint">ایمیل ورود قابل تغییر نیست.</small></label>
         <label>تلفن (اختیاری)<input dir="ltr" inputMode="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
+        <label className="field-wide le-check">
+          <input type="checkbox" checked={form.hideLastSeen} onChange={(e) => setForm({ ...form, hideLastSeen: e.target.checked })} />
+          پنهان کردن «آخرین بازدید» و وضعیت آنلاین
+          <span className="field-hint">اگر روشن باشد، هیچ‌کس نقطه‌ی سبز آنلاین یا زمان آخرین بازدید شما را نمی‌بیند.</span>
+        </label>
         {error && <div className="form-error field-wide">{error}</div>}
         {saved && <div className="auth-success field-wide" role="status">تغییرات ذخیره شد.</div>}
         <div className="field-wide settings-actions"><button className="primary-button" disabled={busy}>{busy ? "در حال ذخیره..." : "ذخیره تغییرات"}</button></div>

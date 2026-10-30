@@ -4,7 +4,7 @@ const notificationSchema = new mongoose.Schema(
   {
     workspaceId: { type: mongoose.Schema.Types.ObjectId, ref: "Workspace", required: true, index: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    actorId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    actorId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }, // null = sent by the system (reminders)
     actorName: { type: String, default: "" },
     type: { type: String, required: true },
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: "Project", default: null },

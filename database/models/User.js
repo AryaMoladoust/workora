@@ -57,6 +57,11 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
     // Last heartbeat from the app (online = seen within the last 2 minutes).
+    // true: nobody sees this person's online dot / "last seen" (they are shown as offline)
+    hideLastSeen: {
+      type: Boolean,
+      default: false,
+    },
     lastSeenAt: {
       type: Date,
       default: null,

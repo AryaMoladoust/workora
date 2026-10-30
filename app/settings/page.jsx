@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   const current = await requireAuth();
   await connectToDatabase();
-  const user = await User.findById(current.user.id).select("phone").lean();
+  const user = await User.findById(current.user.id).select("phone hideLastSeen").lean();
 
   return (
     <div className="page-shell">
@@ -25,7 +25,7 @@ export default async function SettingsPage() {
       </div>
 
       <div className="settings-grid">
-        <ProfileForm initial={{ firstName: current.user.firstName, lastName: current.user.lastName, email: current.user.email, phone: user?.phone || "" }} />
+        <ProfileForm initial={{ firstName: current.user.firstName, lastName: current.user.lastName, email: current.user.email, phone: user?.phone || "", hideLastSeen: Boolean(user?.hideLastSeen) }} />
         <PasswordForm />
         <NotificationsCard />
         {hasPermission(current, "settings.manage") && <WorkspaceForm initialName={current.workspace.name} />}

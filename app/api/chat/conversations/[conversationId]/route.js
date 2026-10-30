@@ -31,7 +31,7 @@ export async function GET(_request, { params }) {
   ]);
 
   const others = participants.filter((p) => p.id !== current.user.id);
-  const users = others.length ? await User.find({ _id: { $in: others.map((p) => p.id) } }).select("lastSeenAt").lean() : [];
+  const users = others.length ? await User.find({ _id: { $in: others.map((p) => p.id) } }).select("lastSeenAt hideLastSeen").lean() : [];
   const now = new Date();
   const presence = {};
   for (const u of users) presence[String(u._id)] = presenceOf(u, now);

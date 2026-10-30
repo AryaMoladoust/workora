@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { connectToDatabase } from "../../../../../lib/db";
 import { getCurrentUser } from "../../../../../lib/auth";
 import { findAccessibleProject } from "../../../../../lib/project-access";
-import { assigneeError, commentCountsFor, serializeTask } from "../../../../../lib/tasks";
+import { assigneeError, blockerMapFor, commentCountsFor, serializeTask } from "../../../../../lib/tasks";
+import { blockerError, parseTaskExtras } from "../../../../../lib/task-extras";
 import { logActivity, notify, userNameMap } from "../../../../../lib/activity";
 import { parseOptionalDate } from "../../../../../lib/validation";
 import Task, { TASK_PRIORITIES, TASK_STATUSES } from "../../../../../database/models/Task";
@@ -21,11 +22,11 @@ export async function GET(_request, { params }) {
   const tasks = await Task.find({ workspaceId: current.workspace.id, projectId: project._id })
     .sort({ createdAt: -1 })
     .lean();
-  const counts = await commentCountsFor(tasks.map((t) => t._id));
+  const [counts, blockerMap] = await Promise.all([commentCountsFor(tasks.map((t) => t._id)), blockerMapFor(tasks)]);
   const now = new Date();
 
   return NextResponse.json({
-    tasks: tasks.map((t) => serializeTask(t, { projectName: project.name, commentCount: counts.get(String(t._id)) || 0, now })),
+    tasks: tasks.map((t) => serializeTask(t, { projectName: project.name, commentCount: counts.get(String(t._id)) || 0, now, blockerMap, projectLabels: project.labels })),
   });
 }
 
@@ -69,7 +70,16 @@ export async function POST(request, { params }) {
     }
 
     await connectToDatabase();
+    const extras = await parseTaskExtras(body, { project, workspaceId: current.workspace.id });
+    if (extras.error) return NextResponse.json({ error: extras.error }, { status: extras.status });
+    if (extras.set.recurrence && !due.value) return NextResponse.json({ error: "برای وظیفه‌ی تکرارشونده باید مهلت مشخص کنید." }, { status: 400 });
+    if (status !== "todo" && extras.set.blockedBy?.length) {
+      const waiting = await blockerError(extras.set.blockedBy, current.workspace.id);
+      if (waiting) return NextResponse.json({ error: waiting }, { status: 400 });
+    }
+
     const task = await Task.create({
+      ...extras.set,
       workspaceId: current.workspace.id,
       projectId: project._id,
       title,
@@ -97,7 +107,7 @@ export async function POST(request, { params }) {
     }
 
     return NextResponse.json(
-      { task: serializeTask(task.toObject(), { projectName: project.name, commentCount: 0 }) },
+      { task: serializeTask(task.toObject(), { projectName: project.name, commentCount: 0, blockerMap: await blockerMapFor([task]), projectLabels: project.labels }) },
       { status: 201 }
     );
   } catch (error) {

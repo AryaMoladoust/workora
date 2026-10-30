@@ -3,7 +3,7 @@ import { requireAuth } from "../../lib/require-auth";
 import { connectToDatabase } from "../../lib/db";
 import { projectScope } from "../../lib/project-access";
 import { listWorkspaceMembers } from "../../lib/members";
-import { commentCountsFor, isTaskManager, serializeTask } from "../../lib/tasks";
+import { blockerMapFor, commentCountsFor, isTaskManager, serializeTask } from "../../lib/tasks";
 import { fa } from "../../lib/format";
 import TaskWorkspace from "../../components/tasks/TaskWorkspace";
 import Project from "../../database/models/Project";
@@ -32,11 +32,12 @@ export default async function MyTasksPage({ searchParams }) {
   if (scope === "created") filter.createdBy = current.user.id;
 
   const tasks = await Task.find(filter).sort({ createdAt: -1 }).limit(500).lean();
-  const counts = await commentCountsFor(tasks.map((t) => t._id));
+  const [counts, blockerMap] = await Promise.all([commentCountsFor(tasks.map((t) => t._id)), blockerMapFor(tasks)]);
   const now = new Date();
+  const labelsOf = new Map(projects.map((p) => [String(p._id), p.labels || []]));
 
   const initialTasks = tasks.map((t) =>
-    serializeTask(t, { projectName: projectName.get(String(t.projectId)) || "پروژه", commentCount: counts.get(String(t._id)) || 0, now })
+    serializeTask(t, { projectName: projectName.get(String(t.projectId)) || "پروژه", commentCount: counts.get(String(t._id)) || 0, now, blockerMap, projectLabels: labelsOf.get(String(t.projectId)) })
   );
 
   const members = await listWorkspaceMembers(current.workspace.id, { includeInactive: true });
@@ -45,7 +46,7 @@ export default async function MyTasksPage({ searchParams }) {
   // projects offered when creating a task (finished/archived ones are hidden)
   const createProjects = projects
     .filter((p) => p.status === "active")
-    .map((p) => ({ id: String(p._id), name: p.name, memberIds: p.memberIds.map(String) }));
+    .map((p) => ({ id: String(p._id), name: p.name, memberIds: p.memberIds.map(String), labels: (p.labels || []).map((l) => ({ id: l.id, name: l.name, color: l.color })) }));
 
   const open = initialTasks.filter((t) => t.status !== "done").length;
   const overdue = initialTasks.filter((t) => t.status !== "done" && t.dueTone === "overdue").length;

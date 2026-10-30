@@ -1995,3 +1995,79 @@ html[data-splash="off"] .splash { display: none !important; }
 .group-manager section > input[type="search"] { margin-bottom: 10px; }
 .group-manager .primary-button { margin-top: 12px; }
 .modal-foot .danger-button { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ================= task extras: checklist, labels, repeat, prerequisites, calendar ================= */
+.task-extra { display: grid; gap: 8px; padding-top: 4px; }
+.task-extra .field-label { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; }
+.task-extra .field-label small { color: var(--muted); font-weight: 500; }
+
+.mini-progress { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.mini-progress > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .25s var(--ease, ease); }
+
+.cl-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.cl-list li { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 12px; background: var(--surface-2); }
+.cl-list li.is-done .cl-text { text-decoration: line-through; color: var(--muted); }
+.cl-list input[type="checkbox"] { flex: none; width: 18px; height: 18px; accent-color: var(--accent); }
+.cl-list .cl-text { flex: 1; min-width: 0; border: 0; background: transparent; box-shadow: none; padding: 6px 4px; }
+.cl-list .cl-text:focus { box-shadow: none; }
+.cl-list .icon-button { width: 28px; height: 28px; }
+
+.label-picker, .tcard-labels { display: flex; flex-wrap: wrap; gap: 6px; }
+.label-chip { --lc: var(--accent); display: inline-flex; align-items: center; padding: 3px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 700; line-height: 1.6; cursor: pointer; color: var(--lc); background: color-mix(in srgb, var(--lc) 13%, transparent); border: 1px solid color-mix(in srgb, var(--lc) 35%, transparent); font-family: inherit; }
+.label-chip.is-on { color: #fff; background: var(--lc); border-color: var(--lc); }
+.label-chip.is-static { cursor: inherit; padding: 1px 9px; font-size: 11.5px; }
+.label-chip:disabled { cursor: default; opacity: .7; }
+
+.rec-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.rec-row select { width: auto; min-width: 170px; }
+.rec-interval { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.rec-interval input { width: 74px; text-align: center; }
+
+.blocker-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.blocker-list li { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 12px; background: color-mix(in srgb, var(--warn, #f59e0b) 12%, transparent); }
+.blocker-list li.is-done { background: color-mix(in srgb, var(--c-done) 12%, transparent); color: var(--c-done); }
+.blocker-list li span { flex: 1; min-width: 0; font-weight: 600; font-size: 13.5px; }
+.blocker-list .icon-button { width: 26px; height: 26px; }
+
+.tcard-progress { display: flex; align-items: center; gap: 8px; }
+.tcard-progress .mini-progress { flex: 1; }
+.tcard-progress small, .lrow-steps { color: var(--muted); font-size: 12px; font-weight: 700; }
+.badge-blocked { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; color: var(--warn, #b45309); background: color-mix(in srgb, var(--warn, #f59e0b) 15%, transparent); }
+.tcard-repeat { display: inline-flex; color: var(--muted); }
+
+/* calendar */
+.tcal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 16px; box-shadow: var(--shadow-sm); }
+.tcal-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.tcal-head h3 { font-size: 18px; font-weight: 800; }
+.tcal-nav { display: inline-flex; gap: 6px; }
+.tcal-today { margin-inline-start: auto; }
+.tcal-scroll { overflow-x: auto; }
+.tcal-grid { display: grid; grid-template-columns: repeat(7, minmax(112px, 1fr)); gap: 6px; min-width: 800px; }
+.tcal-dow { text-align: center; font-weight: 800; font-size: 13px; color: var(--muted); padding: 4px 0 6px; }
+.tcal-dow.is-weekend { color: var(--danger); }
+.tcal-cell { min-height: 112px; padding: 8px; border-radius: 14px; background: var(--surface-2); border: 1px solid transparent; display: flex; flex-direction: column; gap: 6px; }
+.tcal-cell.is-blank { background: transparent; }
+.tcal-cell.is-weekend:not(.is-blank) { background: color-mix(in srgb, var(--danger) 5%, var(--surface-2)); }
+.tcal-cell.is-today { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.tcal-day { font-weight: 800; font-size: 13px; color: var(--muted); }
+.tcal-cell.is-today .tcal-day { color: var(--accent); }
+.tcal-tasks { display: grid; gap: 4px; min-width: 0; }
+.cal-task { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 4px 8px; border: 0; border-radius: 9px; background: var(--surface); color: var(--text); font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; text-align: start; box-shadow: 0 0 0 1px var(--border) inset; }
+.cal-task:hover { box-shadow: 0 0 0 1px var(--accent-ring) inset; background: var(--accent-soft); }
+.cal-task .cal-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.cal-task.prio-urgent .cal-dot { background: var(--danger); }
+.cal-task.prio-high .cal-dot { background: #f97316; }
+.cal-task.prio-medium .cal-dot { background: var(--accent); }
+.cal-task.prio-low .cal-dot { background: var(--faint, #94a3b8); }
+.cal-task .cal-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-task.is-done { opacity: .55; text-decoration: line-through; }
+.cal-task.is-overdue:not(.is-done) { color: var(--danger); }
+.cal-more { border: 0; background: transparent; color: var(--accent); font-family: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; text-align: start; padding: 0 4px; }
+.tcal-note { display: flex; align-items: center; gap: 6px; margin-top: 12px; color: var(--muted); font-size: 13px; }
+
+/* labels manager (project settings) */
+.lbl-list { list-style: none; margin: 14px 0; padding: 0; display: grid; gap: 8px; }
+.lbl-list li, .lbl-add { display: flex; align-items: center; gap: 10px; }
+.lbl-list input, .lbl-add input { flex: 1; min-width: 0; }
+.lbl-swatch { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--surface); box-shadow: 0 0 0 1px var(--border); cursor: pointer; }
+.labels-manager .settings-actions { margin-top: 14px; }
