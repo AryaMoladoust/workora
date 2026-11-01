@@ -292,7 +292,7 @@ export default function ChatApp({ me, initialProjects, initialGroups = [], initi
             onMessage={handleSent}
             onMutedChange={handleMuted}
             onLeave={handleLeave}
-            people={people}
+            workspacePeople={people}
             onGroupChanged={handleGroupChanged}
           />
         ) : (

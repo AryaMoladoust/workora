@@ -54,7 +54,7 @@ function highlight(text, query) {
   return text.split(re).map((part, i) => (i % 2 === 1 ? <mark key={i}>{part}</mark> : part));
 }
 
-export default function ChatThread({ conversation, me, embedded = false, people = [], onBack, onRead, onMessage, onMutedChange, onLeave, onGroupChanged }) {
+export default function ChatThread({ conversation, me, embedded = false, workspacePeople = [], onBack, onRead, onMessage, onMutedChange, onLeave, onGroupChanged }) {
   const { status, subscribe, setChatUnread } = useRealtime();
   const [messages, setMessages] = useState([]);
   const [hasMore, setHasMore] = useState(false);
@@ -1094,7 +1094,7 @@ export default function ChatThread({ conversation, me, embedded = false, people 
           meId={me.id}
           ownerId={ownerId}
           participants={participants}
-          people={people}
+          people={workspacePeople}
           onChanged={(entry) => {
             refreshMeta();
             if (entry) onGroupChanged?.(entry);
