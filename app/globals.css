@@ -2071,3 +2071,19 @@ html[data-splash="off"] .splash { display: none !important; }
 .lbl-list input, .lbl-add input { flex: 1; min-width: 0; }
 .lbl-swatch { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--surface); box-shadow: 0 0 0 1px var(--border); cursor: pointer; }
 .labels-manager .settings-actions { margin-top: 14px; }
+
+/* ---------------------------------------------------------------- passwords section (رمزها) */
+.vault-gate { max-width: 460px; margin: 32px auto; padding: 32px 28px; text-align: center; display: grid; gap: 14px; }
+.vault-gate-icon { width: 64px; height: 64px; margin: 0 auto; display: grid; place-items: center; border-radius: 20px; color: var(--on-accent); background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+.vault-gate h2 { font-size: 20px; font-weight: 800; }
+.vault-gate p { color: var(--muted); font-size: 14px; line-height: 1.9; }
+.vault-gate form { display: grid; gap: 12px; text-align: start; }
+.vault-gate label, .vault-label { display: grid; gap: 8px; font-size: 14px; font-weight: 700; }
+.vault-field { display: flex; gap: 8px; align-items: stretch; }
+.vault-field input { flex: 1; min-width: 0; direction: ltr; text-align: left; }
+.vault-field .icon-button { flex: none; }
+.vault-user { direction: ltr; justify-content: flex-start; font-family: ui-monospace, "Cascadia Code", Consolas, Menlo, monospace; overflow-wrap: anywhere; }
+.vault-muted { direction: rtl; font-family: inherit; opacity: .8; }
+.vault-restore { margin-bottom: 14px; }
+.link-button { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; }
+.link-button:disabled { opacity: .6; cursor: default; }

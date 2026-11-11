@@ -28,6 +28,7 @@ export const NAV_GROUPS = [
     label: "سیستم",
     items: [
       { href: "/configs", label: "کانفیگ‌ها", icon: "code" },
+      { href: "/vault", label: "رمزها", icon: "key" },
       { href: "/settings", label: "تنظیمات", icon: "settings" },
     ],
   },

@@ -42,6 +42,11 @@ const membershipSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    // the empty suggested entries of the passwords section were created for this member (done once)
+    vaultSeeded: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
